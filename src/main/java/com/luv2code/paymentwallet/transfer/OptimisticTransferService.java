@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 /**
  * Optimistic strategy: no database locks. Both accounts are read normally, and
  * Account.version turns each balance UPDATE into
@@ -31,15 +33,15 @@ public class OptimisticTransferService {
     private final TransferSupport support;
 
     @Transactional
-    public TransferResponse attempt(TransferRequest request, String idempotencyKey) {
+    public TransferResponse attempt(TransferRequest request, String idempotencyKey, UUID actorPublicId) {
 
-        var existing = transferRepository.findByInitiatorAndKey(request.initiatorPublicId(), idempotencyKey);
+        var existing = transferRepository.findByInitiatorAndKey(actorPublicId, idempotencyKey);
         if (existing.isPresent()) {
             return TransferResponse.from(existing.get());
         }
 
-        AppUser initiator = userRepository.findByPublicId(request.initiatorPublicId())
-                .orElseThrow(() -> new NotFoundException("No user with id " + request.initiatorPublicId()));
+        AppUser initiator = userRepository.findByPublicId(actorPublicId)
+                .orElseThrow(() -> new NotFoundException("No user with id " + actorPublicId));
 
         Account source = accountRepository.findByAccountNumber(request.sourceAccountNumber())
                 .orElseThrow(() -> new NotFoundException("No account " + request.sourceAccountNumber()));
@@ -50,6 +52,6 @@ public class OptimisticTransferService {
             throw new BusinessRuleException("Source and destination must differ");
         }
 
-        return support.post(request, idempotencyKey, initiator, source, dest);
+        return support.post(request, idempotencyKey, actorPublicId, initiator, source, dest);
     }
 }

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -26,11 +27,11 @@ public class RetryingTransferService {
     private final OptimisticTransferService optimisticTransferService;
     private final AtomicLong retries = new AtomicLong();
 
-    public TransferResponse execute(TransferRequest request, String idempotencyKey) {
+    public TransferResponse execute(TransferRequest request, String idempotencyKey, UUID actorPublicId) {
         OptimisticLockingFailureException last = null;
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
-                return optimisticTransferService.attempt(request, idempotencyKey);
+                return optimisticTransferService.attempt(request, idempotencyKey, actorPublicId);
             } catch (OptimisticLockingFailureException ex) {
                 last = ex;
                 retries.incrementAndGet();

@@ -24,32 +24,30 @@ public class CashService {
     private final TransferService transferService;
     private final AccountRepository accountRepository;
 
-    public TransferResponse deposit(String accountNumber, UUID initiatorPublicId,
+    public TransferResponse deposit(String accountNumber, UUID actorPublicId,
                                     CashRequest request, String idempotencyKey) {
         requireWallet(accountNumber, "deposit into");
         String currency = currencyOf(accountNumber);
         return transferService.execute(new TransferRequest(
-                initiatorPublicId,
                 systemAccountFor(currency),
                 accountNumber,
                 request.amount(),
                 currency,
                 TransferType.TOPUP,
-                request.description()), idempotencyKey);
+                request.description()), idempotencyKey, actorPublicId);
     }
 
-    public TransferResponse withdraw(String accountNumber, UUID initiatorPublicId,
+    public TransferResponse withdraw(String accountNumber, UUID actorPublicId,
                                      CashRequest request, String idempotencyKey) {
         requireWallet(accountNumber, "withdraw from");
         String currency = currencyOf(accountNumber);
         return transferService.execute(new TransferRequest(
-                initiatorPublicId,
                 accountNumber,
                 systemAccountFor(currency),
                 request.amount(),
                 currency,
                 TransferType.WITHDRAWAL,
-                request.description()), idempotencyKey);
+                request.description()), idempotencyKey, actorPublicId);
     }
 
     /** The path variable is the customer account. The settlement side is chosen here. */

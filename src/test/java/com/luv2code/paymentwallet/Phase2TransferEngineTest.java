@@ -67,7 +67,7 @@ class Phase2TransferEngineTest {
     @DisplayName("a posted transfer writes two balanced legs and one outbox event")
     void postsDoubleEntry() {
         TransferResponse response = transferService.execute(
-                request(new BigDecimal("20.0000")), UUID.randomUUID().toString());
+                request(new BigDecimal("20.0000")), UUID.randomUUID().toString(), alice.getPublicId());
 
         assertThat(response.status()).isEqualTo(TransferStatus.POSTED);
         assertThat(response.reference()).startsWith("TRF");
@@ -93,8 +93,8 @@ class Phase2TransferEngineTest {
     @Test
     @DisplayName("balance always equals the sum of its ledger entries")
     void balanceReconcilesWithLedger() {
-        transferService.execute(request(new BigDecimal("12.5000")), UUID.randomUUID().toString());
-        transferService.execute(request(new BigDecimal("7.5000")), UUID.randomUUID().toString());
+        transferService.execute(request(new BigDecimal("12.5000")), UUID.randomUUID().toString(), alice.getPublicId());
+        transferService.execute(request(new BigDecimal("7.5000")), UUID.randomUUID().toString(), alice.getPublicId());
 
         assertThat(ledgerEntryRepository.balanceFromLedger(bobEgp.getId()))
                 .isEqualByComparingTo(balanceOf(bobEgp));
@@ -108,8 +108,8 @@ class Phase2TransferEngineTest {
         String key = UUID.randomUUID().toString();
         TransferRequest request = request(new BigDecimal("10.0000"));
 
-        TransferResponse first = transferService.execute(request, key);
-        TransferResponse retry = transferService.execute(request, key);
+        TransferResponse first = transferService.execute(request, key, alice.getPublicId());
+        TransferResponse retry = transferService.execute(request, key, alice.getPublicId());
 
         assertThat(retry.reference()).isEqualTo(first.reference());
         assertThat(myTransfers()).isEqualTo(1);
@@ -120,24 +120,24 @@ class Phase2TransferEngineTest {
     @DisplayName("insufficient funds, currency mismatch and self-transfer are rejected")
     void rejectsInvalidTransfers() {
         assertThatThrownBy(() -> transferService.execute(
-                request(new BigDecimal("500.0000")), UUID.randomUUID().toString()))
+                request(new BigDecimal("500.0000")), UUID.randomUUID().toString(), alice.getPublicId()))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Insufficient funds");
 
         Account aliceUsd = newAccount(alice, "USD", new BigDecimal("100.0000"));
-        TransferRequest crossCurrency = new TransferRequest(alice.getPublicId(),
+        TransferRequest crossCurrency = new TransferRequest(
                 aliceUsd.getAccountNumber(), bobEgp.getAccountNumber(),
                 new BigDecimal("5.0000"), "USD", TransferType.P2P, null);
-        assertThatThrownBy(() -> transferService.execute(crossCurrency, UUID.randomUUID().toString()))
+        assertThatThrownBy(() -> transferService.execute(crossCurrency, UUID.randomUUID().toString(), alice.getPublicId()))
                 .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("Currency mismatch");
+                .hasMessageContaining("Currency mismatch", alice.getPublicId());
 
-        TransferRequest toSelf = new TransferRequest(alice.getPublicId(),
+        TransferRequest toSelf = new TransferRequest(
                 aliceEgp.getAccountNumber(), aliceEgp.getAccountNumber(),
                 new BigDecimal("1.0000"), "EGP", TransferType.P2P, null);
-        assertThatThrownBy(() -> transferService.execute(toSelf, UUID.randomUUID().toString()))
+        assertThatThrownBy(() -> transferService.execute(toSelf, UUID.randomUUID().toString(), alice.getPublicId()))
                 .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("must differ");
+                .hasMessageContaining("must differ", alice.getPublicId());
 
         assertThat(balanceOf(aliceEgp)).isEqualByComparingTo("50.0000");
     }
@@ -156,7 +156,7 @@ class Phase2TransferEngineTest {
                 try {
                     startGate.await();
                     transferService.execute(request(new BigDecimal("1.0000")),
-                                            UUID.randomUUID().toString());
+                                            UUID.randomUUID().toString(), alice.getPublicId());
                     succeeded.incrementAndGet();
                 } catch (BusinessRuleException e) {
                     rejected.incrementAndGet();
@@ -186,7 +186,7 @@ class Phase2TransferEngineTest {
     // ---------- fixtures ----------
 
     private TransferRequest request(BigDecimal amount) {
-        return new TransferRequest(alice.getPublicId(), aliceEgp.getAccountNumber(),
+        return new TransferRequest(aliceEgp.getAccountNumber(),
                 bobEgp.getAccountNumber(), amount, "EGP", TransferType.P2P, "test");
     }
 

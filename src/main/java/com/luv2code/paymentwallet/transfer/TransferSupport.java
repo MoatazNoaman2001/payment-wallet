@@ -29,7 +29,7 @@ class TransferSupport {
     private final LedgerEntryRepository ledgerEntryRepository;
     private final OutboxEventRepository outboxEventRepository;
 
-    TransferResponse post(TransferRequest request, String idempotencyKey,
+    TransferResponse post(TransferRequest request, String idempotencyKey, UUID actorPublicId,
                           AppUser initiator, Account source, Account dest) {
 
         validate(request, source, dest);
@@ -50,7 +50,7 @@ class TransferSupport {
         try {
             transferRepository.saveAndFlush(transfer);
         } catch (DataIntegrityViolationException ex) {
-            return transferRepository.findByInitiatorAndKey(request.initiatorPublicId(), idempotencyKey)
+            return transferRepository.findByInitiatorAndKey(actorPublicId, idempotencyKey)
                     .map(TransferResponse::from)
                     .orElseThrow(() -> ex);
         }

@@ -80,6 +80,19 @@ Bean Validation; `open-in-view` is `false`, so associations are fetched delibera
 `join fetch` or `@EntityGraph` rather than lazily during JSON serialisation. Errors are
 RFC 7807 `application/problem+json`.
 
+**Identity comes from the token, never from the request.** Requests used to carry
+`initiatorPublicId`, which meant the server believed whatever the client claimed. That
+field is deleted: the caller is read from the authenticated principal. Authentication
+answers *who are you*, roles answer *what kind of thing may you do*, and an ownership
+check answers *is this row yours* — the third is the one that stops an authenticated
+customer reading someone else's statement, and it is asserted in tests.
+
+**Tokens: short-lived JWT plus a rotating refresh token.** The access token is a 15-minute
+HS256 JWT delivered in an `HttpOnly` cookie, so a cross-site script cannot read it, with
+`Authorization: Bearer` accepted as a fallback for Swagger and curl. The refresh token is
+an opaque random string stored as a SHA-256 hash, single use, and rotated on every use;
+replaying a spent one revokes every token descended from that login.
+
 **Query count never grows with page size.** The statement endpoint filters through a
 `Specification` and fetches through an `@EntityGraph`, so 6x the rows costs no extra
 queries — measured and asserted, not assumed:
@@ -123,21 +136,25 @@ Full DDL: [`V1__init.sql`](src/main/resources/db/migration/V1__init.sql)
 
 Interactive docs at **http://localhost:8080/swagger-ui.html**
 
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/api/users` | register a user (PENDING, ROLE_CUSTOMER) |
-| `GET` | `/api/users/{publicId}` | fetch a user |
-| `POST` | `/api/users/{publicId}/activation` | activate after KYC |
-| `POST` | `/api/accounts` | open an account in a currency |
-| `GET` | `/api/accounts/{accountNumber}` | fetch an account |
-| `GET` | `/api/accounts?ownerPublicId=` | list an owner's accounts |
-| `POST` | `/api/accounts/{accountNumber}/deposits` | settlement → wallet (`TOPUP`) |
-| `POST` | `/api/accounts/{accountNumber}/withdrawals` | wallet → settlement (`WITHDRAWAL`) |
-| `POST` | `/api/transfers` | wallet → wallet (`P2P`), needs `Idempotency-Key` |
-| `GET` | `/api/transfers/{reference}` | fetch a transfer |
-| `PUT` | `/api/transfers/{reference}/tags` | categorise a transfer |
-| `GET` | `/api/accounts/{accountNumber}/statement` | paginated, filterable statement |
-| `GET` | `/api/accounts/{accountNumber}/spend-by-tag` | monthly spend aggregate |
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| `POST` | `/api/auth/login` | issue access + refresh cookies | public |
+| `POST` | `/api/auth/refresh` | rotate the refresh token | public |
+| `POST` | `/api/auth/logout` | revoke every refresh token | authenticated |
+| `GET` | `/api/auth/me` | the authenticated identity | authenticated |
+| `POST` | `/api/users` | register a user (PENDING, ROLE_CUSTOMER) | public |
+| `GET` | `/api/users/{publicId}` | fetch a user | self or admin |
+| `POST` | `/api/users/{publicId}/activation` | activate after KYC | **admin** |
+| `POST` | `/api/accounts` | open an account for the caller | authenticated |
+| `GET` | `/api/accounts/{accountNumber}` | fetch an account | owner |
+| `GET` | `/api/accounts` | the caller's accounts | authenticated |
+| `POST` | `/api/accounts/{accountNumber}/deposits` | settlement → wallet (`TOPUP`) | owner |
+| `POST` | `/api/accounts/{accountNumber}/withdrawals` | wallet → settlement (`WITHDRAWAL`) | owner |
+| `POST` | `/api/transfers` | wallet → wallet (`P2P`), needs `Idempotency-Key` | owner of **source** |
+| `GET` | `/api/transfers/{reference}` | fetch a transfer | either party |
+| `PUT` | `/api/transfers/{reference}/tags` | categorise a transfer | either party |
+| `GET` | `/api/accounts/{accountNumber}/statement` | paginated, filterable statement | owner |
+| `GET` | `/api/accounts/{accountNumber}/spend-by-tag` | monthly spend aggregate | owner |
 
 Public identifiers are a UUID (`publicId`) or an account number — sequential database ids
 are never exposed.
@@ -181,13 +198,18 @@ instead of silently connecting somewhere unintended. In CI or a container, set `
 ./mvnw spring-boot:run
 ```
 
-Flyway applies `V1..V4` on startup: schema, reference data (EGP/USD/EUR, roles, tags), and
+Flyway applies `V1..V5` on startup: schema, reference data (EGP/USD/EUR, roles, tags), and
 the SYSTEM settlement accounts. Then open Swagger and:
 
 1. `POST /api/users` — register
-2. `POST /api/accounts` — open an EGP wallet
-3. `POST /api/accounts/{number}/deposits` — fund it from settlement
-4. `POST /api/transfers` — send money to a second wallet
+2. `POST /api/auth/login` — copy `accessToken`, paste it into Swagger's **Authorize** button
+3. `POST /api/accounts` — open an EGP wallet
+4. `POST /api/accounts/{number}/deposits` — fund it from settlement
+5. `POST /api/transfers` — send money to a second wallet
+6. `GET /api/accounts/{number}/statement` — see both legs
+
+A demo administrator is seeded by `V5`: `admin@paymentwallet.local` / `admin12345`.
+Demo credentials only — change or remove them before deploying anything.
 
 ```bash
 ./mvnw test
@@ -207,6 +229,7 @@ the SYSTEM settlement accounts. Then open Swagger and:
 | `CashOperationsTest` | deposits and withdrawals against settlement |
 | `Phase3StatementTest` | pagination, composed filters, fixed query count, group-by projection |
 | `LockingStrategyComparisonTest` | pessimistic vs optimistic, side by side |
+| `Phase4SecurityTest` | 401 anonymous, 403 on someone else's account, refused transfer leaves balances untouched, refresh reuse detection |
 
 ---
 
@@ -231,7 +254,7 @@ joins, and the four kinds of JPA projection.
 - [x] Transfer engine — idempotency, locking, double entry, outbox
 - [x] Deposits and withdrawals via settlement accounts
 - [x] Paginated statements, filtering, aggregate spend by tag
-- [ ] Spring Security 6 + JWT, ownership checks
+- [x] Spring Security + JWT, refresh rotation, ownership checks
 - [ ] Reconciliation job, outbox publisher, reversal flow
 - [ ] Testcontainers, Actuator, structured logging
 

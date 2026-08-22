@@ -4,12 +4,8 @@ import com.luv2code.paymentwallet.transfer.TransferType;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 public record TransferRequest(
-
-        @NotNull(message = "initiatorPublicId is required")
-        UUID initiatorPublicId,
 
         @NotBlank(message = "sourceAccountNumber is required")
         String sourceAccountNumber,

@@ -56,4 +56,12 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByIdForUpdate(Long id);
 
     Optional<Account> findByAccountNumberAndUserPublicId(String accountNumber, UUID userPublicId);
+
+    @Query("""
+           select count(t) > 0 from Transfer t
+           where t.reference = :reference
+             and (t.sourceAccount.user.publicId = :ownerPublicId
+                  or t.destAccount.user.publicId = :ownerPublicId)
+           """)
+    boolean existsByTransferReferenceAndOwner(String reference, UUID ownerPublicId);
 }

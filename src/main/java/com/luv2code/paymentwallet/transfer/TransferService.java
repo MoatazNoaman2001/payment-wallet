@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /** Pessimistic strategy: SELECT ... FOR UPDATE on both accounts before validating. */
@@ -29,16 +30,16 @@ public class TransferService {
     private final TransferSupport support;
 
     @Transactional
-    public TransferResponse execute(TransferRequest request, String idempotencyKey) {
+    public TransferResponse execute(TransferRequest request, String idempotencyKey, UUID actorPublicId) {
 
         // 1. idempotency: a retry returns the original result, it does not move money twice
-        var existing = transferRepository.findByInitiatorAndKey(request.initiatorPublicId(), idempotencyKey);
+        var existing = transferRepository.findByInitiatorAndKey(actorPublicId, idempotencyKey);
         if (existing.isPresent()) {
             return TransferResponse.from(existing.get());
         }
 
-        AppUser initiator = userRepository.findByPublicId(request.initiatorPublicId())
-                .orElseThrow(() -> new NotFoundException("No user with id " + request.initiatorPublicId()));
+        AppUser initiator = userRepository.findByPublicId(actorPublicId)
+                .orElseThrow(() -> new NotFoundException("No user with id " + actorPublicId));
 
         Long sourceId = accountIdOf(request.sourceAccountNumber());
         Long destId = accountIdOf(request.destAccountNumber());
@@ -54,7 +55,7 @@ public class TransferService {
         Account dest = first.getId().equals(destId) ? first : second;
 
         // 3-5. validate, write both legs, update balances, emit the outbox event
-        return support.post(request, idempotencyKey, initiator, source, dest);
+        return support.post(request, idempotencyKey, actorPublicId, initiator, source, dest);
     }
 
     @Transactional(readOnly = true)

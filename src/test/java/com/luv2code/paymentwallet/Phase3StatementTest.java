@@ -61,7 +61,7 @@ class Phase3StatementTest {
 
         // 30 outgoing transfers of 1, 2, 3 ... 30
         for (int i = 1; i <= 30; i++) {
-            transferService.execute(request(new BigDecimal(i + ".0000")), UUID.randomUUID().toString());
+            transferService.execute(request(new BigDecimal(i + ".0000")), UUID.randomUUID().toString(), alice.getPublicId());
         }
     }
 
@@ -140,7 +140,9 @@ class Phase3StatementTest {
     @Test
     @DisplayName("spend by tag is a group-by projection, no entities materialised")
     void spendByTag() {
-        List<String> references = transferRepository.findAll().stream()
+        // scoped: findAll() would pick up transfers belonging to other data in this database
+        List<String> references = transferRepository
+                .findBySourceAccountIdInOrDestAccountIdIn(createdAccountIds, createdAccountIds).stream()
                 .map(Transfer::getReference).sorted().toList();
 
         transferService.replaceTags(references.get(0), Set.of("groceries"));
@@ -174,7 +176,7 @@ class Phase3StatementTest {
     }
 
     private TransferRequest request(BigDecimal amount) {
-        return new TransferRequest(alice.getPublicId(), aliceEgp.getAccountNumber(),
+        return new TransferRequest(aliceEgp.getAccountNumber(),
                 bobEgp.getAccountNumber(), amount, "EGP", TransferType.P2P, "line " + amount);
     }
 

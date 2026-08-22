@@ -7,12 +7,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 public record OpenAccountRequest(
-
-        @NotNull(message = "ownerPublicId is required")
-        UUID ownerPublicId,
 
         @NotNull(message = "currencyCode is required")
         @Pattern(regexp = "^[A-Z]{3}$", message = "must be a 3-letter ISO code, e.g. EGP")

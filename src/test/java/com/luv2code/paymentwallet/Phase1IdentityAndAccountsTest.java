@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -90,10 +91,11 @@ class Phase1IdentityAndAccountsTest {
         String publicId = registerAndGetPublicId();
 
         String request = """
-                {"ownerPublicId": "%s", "currencyCode": "EGP", "type": "WALLET", "dailyLimit": 5000.0000}
-                """.formatted(publicId);
+                {"currencyCode": "EGP", "type": "WALLET", "dailyLimit": 5000.0000}
+                """;
 
         String body = mockMvc.perform(post("/api/accounts")
+                        .with(asUser(publicId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                .andExpect(status().isCreated())
@@ -107,7 +109,7 @@ class Phase1IdentityAndAccountsTest {
 
         String accountNumber = JsonPath.read(body, "$.accountNumber");
 
-        mockMvc.perform(get("/api/accounts").param("ownerPublicId", publicId))
+        mockMvc.perform(get("/api/accounts").with(asUser(publicId)))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.length()").value(1))
                .andExpect(jsonPath("$[0].accountNumber").value(accountNumber));
@@ -119,15 +121,22 @@ class Phase1IdentityAndAccountsTest {
         String publicId = registerAndGetPublicId();
 
         String request = """
-                {"ownerPublicId": "%s", "currencyCode": "XXX", "type": "WALLET"}
-                """.formatted(publicId);
+                {"currencyCode": "XXX", "type": "WALLET"}
+                """;
 
         mockMvc.perform(post("/api/accounts")
+                        .with(asUser(publicId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                .andExpect(status().isNotFound())
                .andExpect(jsonPath("$.title").value("Resource not found"))
                .andExpect(jsonPath("$.detail").value("Unknown currency: XXX"));
+    }
+
+    /** Authenticates as this user without calling /api/auth/login. */
+    private static org.springframework.test.web.servlet.request.RequestPostProcessor asUser(String publicId) {
+        return jwt().jwt(builder -> builder.subject(publicId)
+                                           .claim("roles", java.util.List.of("ROLE_CUSTOMER")));
     }
 
     private String registerAndGetPublicId() throws Exception {

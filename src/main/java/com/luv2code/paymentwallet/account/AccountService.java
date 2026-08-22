@@ -2,6 +2,7 @@ package com.luv2code.paymentwallet.account;
 
 import com.luv2code.paymentwallet.account.dto.AccountResponse;
 import com.luv2code.paymentwallet.account.dto.OpenAccountRequest;
+import com.luv2code.paymentwallet.common.error.BusinessRuleException;
 import com.luv2code.paymentwallet.common.error.NotFoundException;
 import com.luv2code.paymentwallet.user.AppUser;
 import com.luv2code.paymentwallet.user.AppUserRepository;
@@ -35,13 +36,12 @@ public class AccountService {
 //    }
 
     @Transactional
-    public AccountResponse open(OpenAccountRequest request) {
-        AppUser owner = userRepository.findByPublicId(request.ownerPublicId())
-                .orElseThrow(() -> new NotFoundException(
-                        "No user with id " + request.ownerPublicId()));
+    public AccountResponse open(OpenAccountRequest request, UUID ownerPublicId) {
+        AppUser owner = userRepository.findByPublicId(ownerPublicId)
+                .orElseThrow(() -> new NotFoundException("No user with id " + ownerPublicId));
 
         if (owner.getStatus() == UserStatus.SUSPENDED || owner.getStatus() == UserStatus.CLOSED) {
-            throw new IllegalStateException("Cannot open an account for a " + owner.getStatus() + " user");
+            throw new BusinessRuleException("Cannot open an account for a " + owner.getStatus() + " user");
         }
 
         Currency currency = currencyRepository.findById(request.currencyCode())

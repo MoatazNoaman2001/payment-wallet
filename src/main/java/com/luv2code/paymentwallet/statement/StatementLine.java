@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 /** One row of an account statement: a single ledger leg, from that account's side. */
-public record   StatementLine(
+public record StatementLine(
         OffsetDateTime date,
         String reference,
         TransferType type,

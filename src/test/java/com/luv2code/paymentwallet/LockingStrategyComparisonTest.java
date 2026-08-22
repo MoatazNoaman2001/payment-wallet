@@ -66,7 +66,7 @@ class LockingStrategyComparisonTest {
     @Test
     @DisplayName("PESSIMISTIC_WRITE: 50 succeed, no retries")
     void pessimisticStrategy() throws Exception {
-        Result result = race((req, key) -> pessimistic.execute(req, key));
+        Result result = race((req, key) -> pessimistic.execute(req, key, alice.getPublicId()));
         report("PESSIMISTIC (select ... for update)", result, 0);
         assertOutcome(result);
     }
@@ -74,7 +74,7 @@ class LockingStrategyComparisonTest {
     @Test
     @DisplayName("@Version + retry: 50 succeed, at the cost of N retries")
     void optimisticStrategy() throws Exception {
-        Result result = race((req, key) -> optimistic.execute(req, key));
+        Result result = race((req, key) -> optimistic.execute(req, key, alice.getPublicId()));
         report("OPTIMISTIC (@Version + retry)", result, optimistic.retryCount());
         assertOutcome(result);
     }
@@ -131,7 +131,7 @@ class LockingStrategyComparisonTest {
     private record Result(int succeeded, int rejected, int failed, long millis) {}
 
     private TransferRequest request() {
-        return new TransferRequest(alice.getPublicId(), aliceEgp.getAccountNumber(),
+        return new TransferRequest(aliceEgp.getAccountNumber(),
                 bobEgp.getAccountNumber(), new BigDecimal("1.0000"), "EGP", TransferType.P2P, null);
     }
 

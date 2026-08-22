@@ -3,6 +3,7 @@ package com.luv2code.paymentwallet.common.error;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -59,6 +60,28 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
         problem.setTitle("Resource not found");
         problem.setDetail(ex.getMessage());
+        return problem;
+    }
+
+    /** Bad or missing credentials. */
+    @ExceptionHandler(UnauthorizedException.class)
+    public ProblemDetail handleUnauthorized(UnauthorizedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+        problem.setTitle("Not authenticated");
+        problem.setDetail(ex.getMessage());
+        return problem;
+    }
+
+    /**
+     * Authenticated, but not yours. Covers AuthorizationDeniedException from @PreAuthorize.
+     * The detail is deliberately vague: telling someone an account exists but is not theirs
+     * still leaks that it exists.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.FORBIDDEN);
+        problem.setTitle("Access denied");
+        problem.setDetail("You do not have access to this resource");
         return problem;
     }
 
