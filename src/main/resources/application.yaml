@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: payment-wallet
+
+  # Reads .env from the project root as a property source. "optional:" means the app
+  # still starts without it (CI and containers supply real environment variables
+  # instead), and "[.properties]" tells Boot to parse the extensionless file as
+  # KEY=value. No dependency needed: this is built into Spring Boot.
+  config:
+    import: optional:file:.env[.properties]
+
+  # No fallback values on purpose. A default that repeats the real credential is
+  # the same leak in a different place, so a missing variable fails at startup
+  # with a clear message instead of silently connecting to something.
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  jpa:
+    open-in-view: false          # trap #2 — never rely on the OSIV session
+    hibernate:
+      ddl-auto: validate         # trap #8 — Flyway owns the schema
+    properties:
+      hibernate:
+        generate_statistics: true   # trap #3 — count queries when hunting N+1
+        jdbc:
+          time_zone: UTC
+
+# ---------------------------------------------------------------------------
+# API docs. springdoc reads the controllers and Bean Validation annotations,
+# so the schema stays in step with the code automatically.
+#   http://localhost:8080/swagger-ui.html   interactive UI
+#   http://localhost:8080/v3/api-docs       raw OpenAPI 3 JSON
+# ---------------------------------------------------------------------------
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
