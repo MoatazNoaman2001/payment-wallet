@@ -37,11 +37,18 @@ class CashOperationsTest {
     private final List<Long> createdAccountIds = new ArrayList<>();
     private final List<Long> createdUserIds = new ArrayList<>();
 
+    private java.math.BigDecimal settlementAtStart;
+    private java.math.BigDecimal settlementLedgerAtStart;
     private AppUser alice;
     private Account wallet;
 
     @BeforeEach
     void setUp() {
+        // the settlement account is shared with all other data in this database,
+        // so assert on how much it moved, not on an absolute figure
+        settlementAtStart = accountRepository.findByAccountNumber("SYSTEM-EGP").orElseThrow().getBalance();
+        settlementLedgerAtStart = ledgerEntryRepository.balanceFromLedger(
+                accountRepository.findByAccountNumber("SYSTEM-EGP").orElseThrow().getId());
         alice = newUser("alice");
         wallet = newAccount(alice);
     }
@@ -64,12 +71,11 @@ class CashOperationsTest {
         assertThat(response.sourceAccountNumber()).isEqualTo("SYSTEM-EGP");
 
         assertThat(balanceOf(wallet)).isEqualByComparingTo("250.0000");
-        assertThat(settlement().getBalance()).isEqualByComparingTo("-250.0000");
+        assertThat(settlementMoved()).isEqualByComparingTo("-250.0000");
 
         assertThat(ledgerEntryRepository.balanceFromLedger(wallet.getId()))
                 .isEqualByComparingTo("250.0000");
-        assertThat(ledgerEntryRepository.balanceFromLedger(settlement().getId()))
-                .isEqualByComparingTo("-250.0000");
+        assertThat(settlementLedgerMoved()).isEqualByComparingTo("-250.0000");
     }
 
     @Test
@@ -85,7 +91,7 @@ class CashOperationsTest {
         assertThat(response.destAccountNumber()).isEqualTo("SYSTEM-EGP");
 
         assertThat(balanceOf(wallet)).isEqualByComparingTo("70.0000");
-        assertThat(settlement().getBalance()).isEqualByComparingTo("-70.0000");
+        assertThat(settlementMoved()).isEqualByComparingTo("-70.0000");
         assertThat(ledgerEntryRepository.balanceFromLedger(wallet.getId()))
                 .isEqualByComparingTo(balanceOf(wallet));
         assertThat(myLedgerEntries()).isEqualTo(4);
@@ -101,7 +107,7 @@ class CashOperationsTest {
 
         cashService.deposit(wallet.getAccountNumber(), alice.getPublicId(),
                 new CashRequest(new BigDecimal("5000.0000"), null), UUID.randomUUID().toString());
-        assertThat(settlement().getBalance()).isEqualByComparingTo("-5000.0000");
+        assertThat(settlementMoved()).isEqualByComparingTo("-5000.0000");
     }
 
     @Test
@@ -131,7 +137,17 @@ class CashOperationsTest {
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Cannot withdraw from settlement account SYSTEM-EGP");
 
-        assertThat(settlement().getBalance()).isEqualByComparingTo("0.0000");
+        assertThat(settlementMoved()).isEqualByComparingTo("0.0000");
+    }
+
+    private java.math.BigDecimal settlementLedgerMoved() {
+        return ledgerEntryRepository.balanceFromLedger(settlement().getId())
+                .subtract(settlementLedgerAtStart);
+    }
+
+    /** How far the shared settlement account moved during this test. */
+    private java.math.BigDecimal settlementMoved() {
+        return settlement().getBalance().subtract(settlementAtStart);
     }
 
     private Account settlement() {

@@ -59,7 +59,13 @@ class TestDataCleaner {
             if (!transferIds.isEmpty()) {
                 ledgerEntryRepository.deleteByTransferIdIn(transferIds);
             }
-            transferRepository.deleteAll(mine);
+            // a REVERSAL has a foreign key to the transfer it compensates, so it has to
+            // go first or Postgres rejects the delete
+            List<Transfer> reversals = mine.stream().filter(t -> t.getReversesTransfer() != null).toList();
+            List<Transfer> rest = mine.stream().filter(t -> t.getReversesTransfer() == null).toList();
+            transferRepository.deleteAll(reversals);
+            transferRepository.flush();
+            transferRepository.deleteAll(rest);
             accountRepository.deleteAllById(accountIds);
 
             counterparties.forEach(this::rebuildBalanceFromLedger);

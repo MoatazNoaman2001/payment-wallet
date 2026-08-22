@@ -93,6 +93,17 @@ HS256 JWT delivered in an `HttpOnly` cookie, so a cross-site script cannot read 
 an opaque random string stored as a SHA-256 hash, single use, and rotated on every use;
 replaying a spent one revokes every token descended from that login.
 
+**Mistakes are corrected forward, never erased.** Reversing a transfer writes a new
+`REVERSAL` in the opposite direction with its own ledger legs and marks the original
+`REVERSED`. Nothing is deleted or edited, so the history shows both the payment and the
+undo. A partial unique index makes "at most one reversal per transfer" a database
+guarantee rather than a service-layer hope:
+
+```sql
+CREATE UNIQUE INDEX uq_transfer_reversal ON transfer(reverses_transfer_id)
+    WHERE reverses_transfer_id IS NOT NULL;
+```
+
 **Query count never grows with page size.** The statement endpoint filters through a
 `Specification` and fetches through an `@EntityGraph`, so 6x the rows costs no extra
 queries — measured and asserted, not assumed:
@@ -153,6 +164,7 @@ Interactive docs at **http://localhost:8080/swagger-ui.html**
 | `POST` | `/api/transfers` | wallet → wallet (`P2P`), needs `Idempotency-Key` | owner of **source** |
 | `GET` | `/api/transfers/{reference}` | fetch a transfer | either party |
 | `PUT` | `/api/transfers/{reference}/tags` | categorise a transfer | either party |
+| `POST` | `/api/transfers/{reference}/reversal` | compensating REVERSAL transfer | **admin** |
 | `GET` | `/api/accounts/{accountNumber}/statement` | paginated, filterable statement | owner |
 | `GET` | `/api/accounts/{accountNumber}/spend-by-tag` | monthly spend aggregate | owner |
 
@@ -198,7 +210,7 @@ instead of silently connecting somewhere unintended. In CI or a container, set `
 ./mvnw spring-boot:run
 ```
 
-Flyway applies `V1..V5` on startup: schema, reference data (EGP/USD/EUR, roles, tags), and
+Flyway applies `V1..V6` on startup: schema, reference data (EGP/USD/EUR, roles, tags), and
 the SYSTEM settlement accounts. Then open Swagger and:
 
 1. `POST /api/users` — register
@@ -210,6 +222,13 @@ the SYSTEM settlement accounts. Then open Swagger and:
 
 A demo administrator is seeded by `V5`: `admin@paymentwallet.local` / `admin12345`.
 Demo credentials only — change or remove them before deploying anything.
+
+For a populated demo — two customers, funded wallets, tagged transfers and a withdrawal,
+all created through the real services so every balance has ledger entries behind it:
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.arguments=--demo.seed=true
+```
 
 ```bash
 ./mvnw test
@@ -229,6 +248,7 @@ Demo credentials only — change or remove them before deploying anything.
 | `CashOperationsTest` | deposits and withdrawals against settlement |
 | `Phase3StatementTest` | pagination, composed filters, fixed query count, group-by projection |
 | `LockingStrategyComparisonTest` | pessimistic vs optimistic, side by side |
+| `Phase5ReversalTest` | compensating reversal, idempotency, state machine, refusal when funds are spent |
 | `Phase4SecurityTest` | 401 anonymous, 403 on someone else's account, refused transfer leaves balances untouched, refresh reuse detection |
 
 ---
@@ -255,7 +275,8 @@ joins, and the four kinds of JPA projection.
 - [x] Deposits and withdrawals via settlement accounts
 - [x] Paginated statements, filtering, aggregate spend by tag
 - [x] Spring Security + JWT, refresh rotation, ownership checks
-- [ ] Reconciliation job, outbox publisher, reversal flow
+- [x] Reversal flow (compensating transfer, never a delete)
+- [ ] Reconciliation job, outbox publisher
 - [ ] Testcontainers, Actuator, structured logging
 
 Not implemented yet: fees (a third ledger leg into a fee account), persisted `FAILED`

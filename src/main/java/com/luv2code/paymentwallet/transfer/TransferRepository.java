@@ -65,6 +65,16 @@ public interface TransferRepository extends JpaRepository<Transfer, Long> {
     @EntityGraph(attributePaths = "tags")
     Optional<Transfer> findWithTagsByReference(String reference);
 
+    /** The compensating transfer written for an original, if it has been reversed. */
+    @Query("""
+           select t from Transfer t
+             join fetch t.sourceAccount
+             join fetch t.destAccount
+             join fetch t.currency
+           where t.reversesTransfer.reference = :originalReference
+           """)
+    Optional<Transfer> findReversalOf(String originalReference);
+
     /** Every transfer that touches any of these accounts, on either side. */
     List<Transfer> findBySourceAccountIdInOrDestAccountIdIn(Collection<Long> source,
                                                             Collection<Long> dest);

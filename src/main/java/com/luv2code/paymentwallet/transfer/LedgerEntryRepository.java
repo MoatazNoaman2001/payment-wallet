@@ -15,13 +15,6 @@ import java.util.List;
 public interface LedgerEntryRepository
         extends JpaRepository<LedgerEntry, Long>, JpaSpecificationExecutor<LedgerEntry> {
 
-    /**
-     * The @EntityGraph is what keeps the statement at a fixed query count: transfer and
-     * both of its accounts arrive in the same SELECT, so building each StatementLine
-     * touches no lazy proxy. All three are @ManyToOne, so this stays a plain join and
-     * Postgres still applies LIMIT/OFFSET - unlike fetching a collection, which would
-     * force Hibernate to page in memory (HHH000104).
-     */
     @Override
     @EntityGraph(attributePaths = {"transfer", "transfer.sourceAccount", "transfer.destAccount"})
     Page<LedgerEntry> findAll(Specification<LedgerEntry> spec, Pageable pageable);

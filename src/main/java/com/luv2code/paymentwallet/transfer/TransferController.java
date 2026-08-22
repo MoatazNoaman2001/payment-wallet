@@ -1,6 +1,7 @@
 package com.luv2code.paymentwallet.transfer;
 
 import com.luv2code.paymentwallet.auth.CurrentUser;
+import com.luv2code.paymentwallet.transfer.dto.ReversalRequest;
 import com.luv2code.paymentwallet.transfer.dto.TagsRequest;
 import com.luv2code.paymentwallet.transfer.dto.TransferRequest;
 import com.luv2code.paymentwallet.transfer.dto.TransferResponse;
@@ -25,10 +26,13 @@ import java.util.List;
 public class TransferController {
 
     private final TransferService transferService;
+    private final ReversalService reversalService;
     private final CurrentUser currentUser;
 
-    public TransferController(TransferService transferService, CurrentUser currentUser) {
+    public TransferController(TransferService transferService, ReversalService reversalService,
+                              CurrentUser currentUser) {
         this.transferService = transferService;
+        this.reversalService = reversalService;
         this.currentUser = currentUser;
     }
 
@@ -54,6 +58,18 @@ public class TransferController {
     @GetMapping("/{reference}")
     public TransferResponse getOne(@PathVariable String reference) {
         return transferService.findByReference(reference);
+    }
+
+    @Operation(summary = "Reverse a transfer",
+               description = "Writes a compensating REVERSAL transfer in the opposite direction "
+                           + "and marks the original REVERSED. Nothing is deleted. Idempotent: "
+                           + "asking twice returns the reversal that already exists. Admin only.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{reference}/reversal")
+    public ResponseEntity<TransferResponse> reverse(@PathVariable String reference,
+                                                    @Valid @RequestBody ReversalRequest request) {
+        return ResponseEntity.status(201)
+                .body(reversalService.reverse(reference, request.reason(), currentUser.publicId()));
     }
 
     @Operation(summary = "Replace a transfer's tags",
