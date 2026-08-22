@@ -80,8 +80,17 @@ applied one (see `V4__restore_system_accounts.sql`).
 
 **Entities never cross the HTTP boundary.** Requests and responses are Java records with
 Bean Validation; `open-in-view` is `false`, so associations are fetched deliberately with
-`join fetch` rather than lazily during JSON serialisation. Errors are RFC 7807
-`application/problem+json`.
+`join fetch` or `@EntityGraph` rather than lazily during JSON serialisation. Errors are
+RFC 7807 `application/problem+json`.
+
+**Query count never grows with page size.** The statement endpoint filters through a
+`Specification` and fetches through an `@EntityGraph`, so 6x the rows costs no extra
+queries — measured and asserted, not assumed:
+
+```
+statement queries: page size 5 (5 rows) = 3, page size 50 (30 rows) = 2
+naive lazy loading of the same 10 rows  = 12
+```
 
 ---
 
@@ -129,6 +138,9 @@ Interactive docs at **http://localhost:8080/swagger-ui.html**
 | `POST` | `/api/accounts/{accountNumber}/withdrawals` | wallet → settlement (`WITHDRAWAL`) |
 | `POST` | `/api/transfers` | wallet → wallet (`P2P`), needs `Idempotency-Key` |
 | `GET` | `/api/transfers/{reference}` | fetch a transfer |
+| `PUT` | `/api/transfers/{reference}/tags` | categorise a transfer |
+| `GET` | `/api/accounts/{accountNumber}/statement` | paginated, filterable statement |
+| `GET` | `/api/accounts/{accountNumber}/spend-by-tag` | monthly spend aggregate |
 
 Public identifiers are a UUID (`publicId`) or an account number — sequential database ids
 are never exposed.
@@ -196,6 +208,7 @@ the SYSTEM settlement accounts. Then open Swagger and:
 | `Phase1IdentityAndAccountsTest` | registration, validation → RFC 7807, opening a wallet |
 | `Phase2TransferEngineTest` | double entry, ledger reconciliation, idempotency, rejections, 100-way concurrency |
 | `CashOperationsTest` | deposits and withdrawals against settlement |
+| `Phase3StatementTest` | pagination, composed filters, fixed query count, group-by projection |
 | `LockingStrategyComparisonTest` | pessimistic vs optimistic, side by side |
 
 ---
@@ -207,6 +220,11 @@ through the transfer module in detail: why the ledger exists, what each of the f
 in `execute()` defends against, and a full comparison of the two locking strategies with
 measured numbers.
 
+[`statement/README.md`](https://github.com/MoatazNoaman2001/payment-wallet/blob/dev/src/main/java/com/luv2code/paymentwallet/statement/README.md)
+covers the query side: pagination and its scaling limits, Specifications for dynamic
+filtering, `@EntityGraph` versus `join fetch` and why collections break paginated fetch
+joins, and the four kinds of JPA projection.
+
 ---
 
 ## Roadmap
@@ -215,7 +233,7 @@ measured numbers.
 - [x] Identity and accounts, DTOs, validation, RFC 7807 errors
 - [x] Transfer engine — idempotency, locking, double entry, outbox
 - [x] Deposits and withdrawals via settlement accounts
-- [ ] Paginated statements, filtering, aggregate spend by tag
+- [x] Paginated statements, filtering, aggregate spend by tag
 - [ ] Spring Security 6 + JWT, ownership checks
 - [ ] Reconciliation job, outbox publisher, reversal flow
 - [ ] Testcontainers, Actuator, structured logging
