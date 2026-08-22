@@ -11,7 +11,9 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 @Entity
 @Table(name = "transfer")
@@ -75,6 +77,13 @@ public class Transfer {
 
     @Version
     private Long version;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "transfer_tag",
+            joinColumns = @JoinColumn(name = "transfer_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id"))
+    private Set<Tag> tags = new HashSet<>();
 
     @Override
     public boolean equals(Object o) {

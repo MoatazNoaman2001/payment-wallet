@@ -1,0 +1,49 @@
+package com.luv2code.paymentwallet.statement;
+
+import com.luv2code.paymentwallet.transfer.LedgerEntry;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Dynamic WHERE clauses built with the Criteria API. Each filter that is null
+ * contributes nothing, so one query method serves every combination instead of
+ * findByAccountAndTypeAndAmountBetweenAnd... exploding combinatorially.
+ *
+ * root.get("transfer").get("type") is a path expression: Hibernate turns it into a
+ * join on the @ManyToOne without you writing one.
+ */
+final class LedgerEntrySpecifications {
+
+    private LedgerEntrySpecifications() {
+    }
+
+    static Specification<LedgerEntry> matching(String accountNumber, StatementFilter filter) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("account").get("accountNumber"), accountNumber));
+
+            if (filter.from() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), filter.from()));
+            }
+            if (filter.to() != null) {
+                predicates.add(cb.lessThan(root.get("createdAt"), filter.to()));
+            }
+            if (filter.type() != null) {
+                predicates.add(cb.equal(root.get("transfer").get("type"), filter.type()));
+            }
+            if (filter.direction() != null) {
+                predicates.add(cb.equal(root.get("direction"), filter.direction()));
+            }
+            if (filter.minAmount() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("amount"), filter.minAmount()));
+            }
+            if (filter.maxAmount() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("amount"), filter.maxAmount()));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+}

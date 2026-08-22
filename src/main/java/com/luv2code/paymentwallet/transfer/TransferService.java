@@ -12,6 +12,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+
 /** Pessimistic strategy: SELECT ... FOR UPDATE on both accounts before validating. */
 @Service
 @RequiredArgsConstructor
@@ -20,6 +25,7 @@ public class TransferService {
     private final TransferRepository transferRepository;
     private final AccountRepository accountRepository;
     private final AppUserRepository userRepository;
+    private final TagRepository tagRepository;
     private final TransferSupport support;
 
     @Transactional
@@ -56,6 +62,25 @@ public class TransferService {
         return transferRepository.findByReference(reference)
                 .map(TransferResponse::from)
                 .orElseThrow(() -> new NotFoundException("No transfer " + reference));
+    }
+
+    /** Replaces a transfer's tags. Tag names must already exist in the tag table. */
+    @Transactional
+    public List<String> replaceTags(String reference, Set<String> tagNames) {
+        Transfer transfer = transferRepository.findWithTagsByReference(reference)
+                .orElseThrow(() -> new NotFoundException("No transfer " + reference));
+
+        List<Tag> found = tagRepository.findByNameIn(tagNames);
+        if (found.size() != tagNames.size()) {
+            Set<String> known = found.stream().map(Tag::getName).collect(Collectors.toSet());
+            Set<String> unknown = new TreeSet<>(tagNames);
+            unknown.removeAll(known);
+            throw new NotFoundException("Unknown tags: " + unknown);
+        }
+
+        transfer.getTags().clear();
+        transfer.getTags().addAll(found);
+        return found.stream().map(Tag::getName).sorted().toList();
     }
 
     private Long accountIdOf(String accountNumber) {

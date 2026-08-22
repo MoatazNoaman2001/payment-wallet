@@ -1,5 +1,6 @@
 package com.luv2code.paymentwallet.transfer;
 
+import com.luv2code.paymentwallet.transfer.dto.TagsRequest;
 import com.luv2code.paymentwallet.transfer.dto.TransferRequest;
 import com.luv2code.paymentwallet.transfer.dto.TransferResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/transfers")
@@ -45,5 +47,13 @@ public class TransferController {
     @GetMapping("/{reference}")
     public TransferResponse getOne(@PathVariable String reference) {
         return transferService.findByReference(reference);
+    }
+
+    @Operation(summary = "Replace a transfer's tags",
+               description = "Tag names must exist in the tag table (seeded by V2).")
+    @PutMapping("/{reference}/tags")
+    public List<String> replaceTags(@PathVariable String reference,
+                                    @Valid @RequestBody TagsRequest request) {
+        return transferService.replaceTags(reference, request.tags());
     }
 }
