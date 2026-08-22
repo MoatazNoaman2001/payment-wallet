@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -63,4 +64,8 @@ public interface TransferRepository extends JpaRepository<Transfer, Long> {
 
     @EntityGraph(attributePaths = "tags")
     Optional<Transfer> findWithTagsByReference(String reference);
+
+    /** Every transfer that touches any of these accounts, on either side. */
+    List<Transfer> findBySourceAccountIdInOrDestAccountIdIn(Collection<Long> source,
+                                                            Collection<Long> dest);
 }

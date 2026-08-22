@@ -42,6 +42,7 @@ class Phase3StatementTest {
     @Autowired AppUserRepository userRepository;
     @Autowired RoleRepository roleRepository;
     @Autowired CurrencyRepository currencyRepository;
+    @Autowired TestDataCleaner testDataCleaner;
     @Autowired EntityManagerFactory entityManagerFactory;
 
     private final List<Long> createdAccountIds = new ArrayList<>();
@@ -66,11 +67,7 @@ class Phase3StatementTest {
 
     @AfterEach
     void tearDown() {
-        outboxEventRepository.deleteAll();
-        ledgerEntryRepository.deleteAll();
-        transferRepository.deleteAll();
-        accountRepository.deleteAllById(createdAccountIds);
-        userRepository.deleteAllById(createdUserIds);
+        testDataCleaner.deleteCreated(createdAccountIds, createdUserIds);
         createdAccountIds.clear();
         createdUserIds.clear();
     }

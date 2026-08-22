@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 
 public interface LedgerEntryRepository
@@ -26,6 +27,8 @@ public interface LedgerEntryRepository
     Page<LedgerEntry> findAll(Specification<LedgerEntry> spec, Pageable pageable);
 
     List<LedgerEntry> findByTransferIdOrderById(Long transferId);
+
+    void deleteByTransferIdIn(Collection<Long> transferIds);
 
     /** Rebuilds a balance from the ledger. Used by the reconciliation test. */
     @Query("""

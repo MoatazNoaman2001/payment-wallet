@@ -38,6 +38,7 @@ class LockingStrategyComparisonTest {
     @Autowired AppUserRepository userRepository;
     @Autowired RoleRepository roleRepository;
     @Autowired CurrencyRepository currencyRepository;
+    @Autowired TestDataCleaner testDataCleaner;
 
     private final List<Long> createdAccountIds = new ArrayList<>();
     private final List<Long> createdUserIds = new ArrayList<>();
@@ -57,12 +58,7 @@ class LockingStrategyComparisonTest {
 
     @AfterEach
     void tearDown() {
-        outboxEventRepository.deleteAll();
-        ledgerEntryRepository.deleteAll();
-        transferRepository.deleteAll();
-        // only what this test made: V3 seeds a SYSTEM user and settlement accounts
-        accountRepository.deleteAllById(createdAccountIds);
-        userRepository.deleteAllById(createdUserIds);
+        testDataCleaner.deleteCreated(createdAccountIds, createdUserIds);
         createdAccountIds.clear();
         createdUserIds.clear();
     }
@@ -89,8 +85,8 @@ class LockingStrategyComparisonTest {
         assertThat(result.failed).isZero();
         assertThat(balanceOf(aliceEgp)).isEqualByComparingTo("0.0000");
         assertThat(balanceOf(bobEgp)).isEqualByComparingTo("50.0000");
-        assertThat(transferRepository.count()).isEqualTo(50);
-        assertThat(ledgerEntryRepository.count()).isEqualTo(100);
+        assertThat(myTransfers()).isEqualTo(50);
+        assertThat(myLedgerEntries()).isEqualTo(100);
         assertThat(ledgerEntryRepository.balanceFromLedger(aliceEgp.getId()))
                 .isEqualByComparingTo("-50.0000");
     }
@@ -167,4 +163,18 @@ class LockingStrategyComparisonTest {
     private BigDecimal balanceOf(Account account) {
         return accountRepository.findById(account.getId()).orElseThrow().getBalance();
     }
+
+    /** Scoped to this test's accounts: the database is shared with local development. */
+    private long myTransfers() {
+        return transferRepository
+                .findBySourceAccountIdInOrDestAccountIdIn(createdAccountIds, createdAccountIds).size();
+    }
+
+    private long myLedgerEntries() {
+        return transferRepository
+                .findBySourceAccountIdInOrDestAccountIdIn(createdAccountIds, createdAccountIds).stream()
+                .mapToLong(t -> ledgerEntryRepository.findByTransferIdOrderById(t.getId()).size())
+                .sum();
+    }
+
 }
