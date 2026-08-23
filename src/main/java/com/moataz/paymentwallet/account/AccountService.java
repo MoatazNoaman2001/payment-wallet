@@ -2,6 +2,7 @@ package com.moataz.paymentwallet.account;
 
 import com.moataz.paymentwallet.account.dto.AccountResponse;
 import com.moataz.paymentwallet.account.dto.AccountRow;
+import com.moataz.paymentwallet.account.dto.OwnerAccounts;
 import com.moataz.paymentwallet.account.dto.OpenAccountRequest;
 import com.moataz.paymentwallet.common.error.BusinessRuleException;
 import com.moataz.paymentwallet.common.error.NotFoundException;
@@ -17,7 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.security.SecureRandom;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Service
@@ -86,6 +90,30 @@ public class AccountService {
                 ? accountRepository.findPageWithOwner(pageable)
                 : accountRepository.findPageByOwner(ownerPublicId, pageable);
         return accounts.map(AccountRow::from);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OwnerAccounts> listByOwner(Pageable pageable) {
+        Page<AppUser> owners = accountRepository.findCustomersWithAccounts(pageable);
+        if (owners.isEmpty()) {
+            return owners.map(u -> new OwnerAccounts(u.getPublicId(), u.getFullName(),
+                    u.getEmail(), u.getStatus().name(), List.of()));
+        }
+
+        Map<Long, List<AccountRow>> byOwner = accountRepository
+                .findCustomerAccountsFor(owners.getContent().stream().map(AppUser::getId).toList())
+                .stream()
+                .collect(Collectors.groupingBy(a -> a.getUser().getId(),
+                        LinkedHashMap::new,
+                        Collectors.mapping(AccountRow::from, Collectors.toList())));
+
+        return owners.map(u -> new OwnerAccounts(u.getPublicId(), u.getFullName(), u.getEmail(),
+                u.getStatus().name(), byOwner.getOrDefault(u.getId(), List.of())));
+    }
+
+    @Transactional(readOnly = true)
+    public List<AccountRow> settlementAccounts() {
+        return accountRepository.findSettlementAccounts().stream().map(AccountRow::from).toList();
     }
 
     @Transactional(readOnly = true)

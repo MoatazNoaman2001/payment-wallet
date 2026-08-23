@@ -1,6 +1,7 @@
 package com.moataz.paymentwallet.account;
 
 import com.moataz.paymentwallet.reliability.BalanceDriftView;
+import com.moataz.paymentwallet.user.AppUser;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,6 +44,40 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
            """,
            countQuery = "select count(a) from Account a")
     Page<Account> findPageWithOwner(Pageable pageable);
+
+    @Query(value = """
+           select distinct u from AppUser u
+           where exists (select 1 from Account a
+                         where a.user = u
+                           and a.type <> com.moataz.paymentwallet.account.AccountType.SYSTEM)
+           order by u.email
+           """,
+           countQuery = """
+           select count(distinct u) from AppUser u
+           where exists (select 1 from Account a
+                         where a.user = u
+                           and a.type <> com.moataz.paymentwallet.account.AccountType.SYSTEM)
+           """)
+    Page<AppUser> findCustomersWithAccounts(Pageable pageable);
+
+    @Query("""
+           select a from Account a
+             join fetch a.user u
+             join fetch a.currency
+           where u.id in :ownerIds
+             and a.type <> com.moataz.paymentwallet.account.AccountType.SYSTEM
+           order by a.id
+           """)
+    List<Account> findCustomerAccountsFor(Collection<Long> ownerIds);
+
+    @Query("""
+           select a from Account a
+             join fetch a.user
+             join fetch a.currency
+           where a.type = com.moataz.paymentwallet.account.AccountType.SYSTEM
+           order by a.currency.code
+           """)
+    List<Account> findSettlementAccounts();
 
     @Query("select a.id from Account a where a.user.id in :ownerIds")
     List<Long> findIdsByOwnerIds(Collection<Long> ownerIds);

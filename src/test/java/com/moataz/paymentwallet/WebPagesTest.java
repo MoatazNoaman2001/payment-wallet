@@ -148,7 +148,8 @@ class WebPagesTest {
     void staffSeeEveryAccount() throws Exception {
         mockMvc.perform(get("/accounts").with(asAdmin()).accept(org.springframework.http.MediaType.TEXT_HTML))
                .andExpect(status().isOk())
-               .andExpect(content().string(org.hamcrest.Matchers.containsString("All accounts")))
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("Customers")))
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("Settlement accounts")))
                .andExpect(content().string(org.hamcrest.Matchers.containsString("SYSTEM-EGP")));
 
         mockMvc.perform(get("/accounts").with(asUser(mallory)).accept(org.springframework.http.MediaType.TEXT_HTML))

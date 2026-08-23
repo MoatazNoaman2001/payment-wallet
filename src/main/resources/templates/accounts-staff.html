@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Accounts · Payment Wallet</title>
+    <link rel="stylesheet" th:href="@{/css/wallet.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: topbar('accounts')}"></div>
+
+<div class="wrap">
+    <h1 class="page-title">Customers</h1>
+    <p class="page-sub"
+       th:text="${owners.totalElements} + ' customer(s) with accounts. Settlement accounts are listed separately below.'">
+        0 customers with accounts.
+    </p>
+
+    <div class="owner-block" th:each="owner : ${owners.content}">
+        <div class="owner-head">
+            <div class="avatar" th:text="${owner.initial()}">M</div>
+            <div class="owner-id">
+                <div class="owner-name" th:text="${owner.ownerName}">Mona Ali</div>
+                <div class="owner-mail" th:text="${owner.ownerEmail}">mona@demo.local</div>
+            </div>
+            <span class="badge" th:classappend="${owner.ownerStatus == 'ACTIVE'} ? 'active'"
+                  th:text="${owner.ownerStatus}">ACTIVE</span>
+            <span class="owner-count"
+                  th:text="${owner.accounts.size()} + (${owner.accounts.size()} == 1 ? ' account' : ' accounts')">
+                0 accounts
+            </span>
+        </div>
+
+        <div class="owner-accounts">
+            <a class="acct-line" th:each="account : ${owner.accounts}"
+               th:href="@{/accounts/{n}/statement(n=${account.accountNumber})}">
+                <span class="acct-number" th:text="${account.accountNumber}">PW0000000000000000</span>
+                <span class="acct-tags">
+                    <span class="badge outline" th:text="${account.type}">WALLET</span>
+                    <span class="badge" th:classappend="${#strings.toLowerCase(account.status)}"
+                          th:text="${account.status}">ACTIVE</span>
+                </span>
+                <span class="acct-balance">
+                    <span th:text="${#numbers.formatDecimal(account.balance, 1, 'COMMA', 2, 'POINT')}">0.00</span>
+                    <span class="balance-ccy" th:text="${account.currencyCode}">EGP</span>
+                </span>
+            </a>
+        </div>
+    </div>
+
+    <div class="empty" th:if="${owners.isEmpty()}">No customer accounts yet.</div>
+
+    <div class="pagination" th:if="${owners.totalPages > 1}">
+        <span th:text="'Page ' + (${owners.number} + 1) + ' of ' + ${owners.totalPages}">Page 1 of 1</span>
+        <span class="pages">
+            <a class="btn btn-outline btn-sm" th:classappend="${owners.first} ? 'disabled'"
+               th:href="@{/accounts(page=${owners.number - 1}, size=${owners.size})}">Previous</a>
+            <a class="btn btn-outline btn-sm" th:classappend="${owners.last} ? 'disabled'"
+               th:href="@{/accounts(page=${owners.number + 1}, size=${owners.size})}">Next</a>
+        </span>
+    </div>
+
+    <div class="system-block" th:unless="${settlement.isEmpty()}">
+        <h2 class="section-title">Settlement accounts</h2>
+        <p class="page-sub">
+            System accounts, one per currency. They may hold a negative balance — that is money the
+            wallet owes the outside world — and cannot be opened through the API.
+        </p>
+
+        <div class="owner-accounts system">
+            <div class="acct-line" th:each="account : ${settlement}">
+                <span class="acct-number" th:text="${account.accountNumber}">SYSTEM-EGP</span>
+                <span class="acct-tags"><span class="badge system">SYSTEM</span></span>
+                <span class="acct-balance">
+                    <span th:classappend="${account.balance.signum() < 0} ? 'amount debit'"
+                          th:text="${#numbers.formatDecimal(account.balance, 1, 'COMMA', 2, 'POINT')}">0.00</span>
+                    <span class="balance-ccy" th:text="${account.currencyCode}">EGP</span>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

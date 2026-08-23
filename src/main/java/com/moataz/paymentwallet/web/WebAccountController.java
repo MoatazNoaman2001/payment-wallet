@@ -21,12 +21,18 @@ public class WebAccountController {
     private final CurrentUser currentUser;
 
     @GetMapping("/accounts")
-    public String accounts(@PageableDefault(size = 20, sort = "id") Pageable pageable, Model model) {
+    public String accounts(@PageableDefault(size = 10) Pageable pageable, Model model) {
         boolean staff = currentUser.isStaff();
-        Page<AccountRow> page = accountService.listRows(staff ? null : currentUser.publicId(), pageable);
-
-        model.addAttribute("page", page);
         model.addAttribute("staff", staff);
+
+        if (staff) {
+            model.addAttribute("owners", accountService.listByOwner(pageable));
+            model.addAttribute("settlement", accountService.settlementAccounts());
+            return "accounts-staff";
+        }
+
+        Page<AccountRow> page = accountService.listRows(currentUser.publicId(), pageable);
+        model.addAttribute("page", page);
         model.addAttribute("total", page.getContent().stream()
                 .map(AccountRow::balance)
                 .reduce(BigDecimal.ZERO, BigDecimal::add));
