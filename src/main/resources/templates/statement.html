@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Statement · Payment Wallet</title>
+    <link rel="stylesheet" th:href="@{/css/wallet.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: topbar}"></div>
+
+<div class="wrap" style="max-width:920px">
+
+    <a class="back" th:href="@{/accounts}">← Accounts</a>
+
+    <div class="head-row">
+        <div>
+            <h1 class="page-title">Statement</h1>
+            <p class="page-sub" style="margin:0">
+                <span class="mono" th:text="${accountNumber}">PW0000000000000000</span>
+            </p>
+        </div>
+        <div class="balance">
+            <span class="balance-amount"
+                  th:text="${#numbers.formatDecimal(account.balance, 1, 'COMMA', 2, 'POINT')}">0.00</span>
+            <span class="balance-ccy" th:text="${account.currencyCode}">EGP</span>
+        </div>
+    </div>
+
+    <form class="filters" method="get" th:action="@{/accounts/{n}/statement(n=${accountNumber})}">
+        <div class="field">
+            <label for="from">From</label>
+            <input type="date" id="from" name="from" th:value="${from}">
+        </div>
+        <div class="field">
+            <label for="to">To</label>
+            <input type="date" id="to" name="to" th:value="${to}">
+        </div>
+        <div class="field">
+            <label for="direction">Direction</label>
+            <select id="direction" name="direction">
+                <option value="">Any</option>
+                <option th:each="d : ${directions}" th:value="${d}" th:text="${d}"
+                        th:selected="${d == direction}">DEBIT</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="type">Type</label>
+            <select id="type" name="type">
+                <option value="">Any</option>
+                <option th:each="t : ${types}" th:value="${t}" th:text="${t}"
+                        th:selected="${t == type}">P2P</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="minAmount">Min</label>
+            <input type="number" step="0.01" id="minAmount" name="minAmount" th:value="${minAmount}">
+        </div>
+        <div class="field">
+            <label for="maxAmount">Max</label>
+            <input type="number" step="0.01" id="maxAmount" name="maxAmount" th:value="${maxAmount}">
+        </div>
+        <div class="actions">
+            <a class="btn btn-outline btn-sm" th:if="${filtered}"
+               th:href="@{/accounts/{n}/statement(n=${accountNumber})}">Clear</a>
+            <button type="submit" class="btn btn-sm">Apply</button>
+        </div>
+    </form>
+
+    <div class="table-card" th:unless="${page.isEmpty()}">
+        <table>
+            <thead>
+            <tr>
+                <th>Date</th>
+                <th>Reference</th>
+                <th>Type</th>
+                <th>Counterparty</th>
+                <th>Description</th>
+                <th class="col-right">Amount</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="line : ${page.content}">
+                <td class="nowrap muted"
+                    th:text="${#temporals.format(line.date, 'dd MMM yyyy, HH:mm')}">22 Aug 2026, 19:16</td>
+                <td class="mono" th:text="${line.reference}">TRF0000000000000000000</td>
+                <td><span class="badge outline" th:text="${line.type}">P2P</span></td>
+                <td class="mono muted" th:text="${line.counterpartyAccount}">SYSTEM-EGP</td>
+                <td th:text="${line.description}">—</td>
+                <td class="col-right nowrap">
+                    <div class="amount"
+                         th:classappend="${line.direction.name() == 'CREDIT'} ? 'credit' : 'debit'"
+                         th:text="(${line.direction.name() == 'CREDIT'} ? '+' : '−')
+                                  + ${#numbers.formatDecimal(line.amount, 1, 'COMMA', 2, 'POINT')}">+0.00</div>
+                    <div class="running"
+                         th:text="${#numbers.formatDecimal(line.balanceAfter, 1, 'COMMA', 2, 'POINT')}">0.00</div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="empty" th:if="${page.isEmpty()}">
+        <span th:if="${filtered}">No entries match these filters.</span>
+        <span th:unless="${filtered}">No activity on this account yet.</span>
+    </div>
+
+    <div class="pagination" th:unless="${page.isEmpty()}">
+        <span th:text="'Showing ' + ${page.numberOfElements} + ' of ' + ${page.totalElements}
+                       + ' · page ' + (${page.number} + 1) + ' of ' + ${page.totalPages}">
+            Showing 15 of 30 · page 1 of 2
+        </span>
+        <span class="pages">
+            <a class="btn btn-outline btn-sm" th:classappend="${page.first} ? 'disabled'"
+               th:href="@{${prevUrl}}">Previous</a>
+            <a class="btn btn-outline btn-sm" th:classappend="${page.last} ? 'disabled'"
+               th:href="@{${nextUrl}}">Next</a>
+        </span>
+    </div>
+
+</div>
+
+</body>
+</html>

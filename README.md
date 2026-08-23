@@ -172,12 +172,13 @@ Full DDL: [`V1__init.sql`](src/main/resources/db/migration/V1__init.sql)
 
 Interactive docs at **http://localhost:8080/swagger-ui.html**
 
-There is also a small server-rendered UI (Thymeleaf): `/login` and `/accounts`.
+There is also a small server-rendered UI (Thymeleaf): sign in, account list, and a filterable statement.
 
 | Method | Path | Purpose | Access |
 |---|---|---|---|
 | `GET`/`POST` | `/login` | sign-in page and form | public |
 | `GET` | `/accounts` (HTML) | the caller's accounts | authenticated |
+| `GET` | `/accounts/{n}/statement` (HTML) | paginated, filterable statement | owner |
 | `POST` | `/api/auth/login` | issue access + refresh cookies | public |
 | `POST` | `/api/auth/refresh` | rotate the refresh token | public |
 | `POST` | `/api/auth/logout` | revoke every refresh token | authenticated |
@@ -332,7 +333,8 @@ joins, and the four kinds of JPA projection.
 - [x] Reconciliation job and outbox publisher
 - [x] Actuator health, correlation-id logging, Docker + Compose
 - [x] Thymeleaf pages: login, accounts
-- [ ] Thymeleaf pages: statement, transfer form
+- [x] Thymeleaf page: statement with filters and pagination
+- [ ] Thymeleaf page: transfer form
 - [ ] Testcontainers, metrics
 
 Not implemented yet: fees (a third ledger leg into a fee account), persisted `FAILED`

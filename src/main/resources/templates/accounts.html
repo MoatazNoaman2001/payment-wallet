@@ -17,7 +17,9 @@
     <div class="card" th:each="account : ${accounts}">
         <div class="card-row">
             <div>
-                <div class="acct-number" th:text="${account.accountNumber}">PW0000000000000000</div>
+                <a class="acct-number"
+                   th:href="@{/accounts/{n}/statement(n=${account.accountNumber})}"
+                   th:text="${account.accountNumber}">PW0000000000000000</a>
                 <div class="meta">
                     <span class="badge outline" th:text="${account.type}">WALLET</span>
                     <span class="badge"
