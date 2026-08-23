@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+
+<!-- A fragment: reusable markup, pulled in with th:replace. Blade's @include. -->
+<div th:fragment="topbar" class="topbar">
+    <div class="brand">payment<span>wallet</span></div>
+    <div class="who">
+        <!-- sec:authorize and sec:authentication come from thymeleaf-extras-springsecurity -->
+        <span sec:authorize="isAuthenticated()" th:text="${#authentication.token.tokenValue != null}
+              ? ${#authentication.principal.claims['email']} : ''">someone@example.com</span>
+        <form th:action="@{/logout}" method="post" style="display:inline">
+            <button type="submit" class="linkbtn" sec:authorize="isAuthenticated()">sign out</button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

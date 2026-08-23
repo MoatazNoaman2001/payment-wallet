@@ -7,18 +7,14 @@ import com.moataz.paymentwallet.config.SecurityConfig;
 import com.moataz.paymentwallet.user.AppUser;
 import com.moataz.paymentwallet.user.AppUserRepository;
 import com.moataz.paymentwallet.user.Role;
-import com.moataz.paymentwallet.user.UserStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import com.moataz.paymentwallet.common.error.UnauthorizedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -35,7 +31,8 @@ import java.util.stream.Collectors;
 public class AuthController {
 
     private final AppUserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final AuthService authService;
+    private final AuthCookies authCookies;
     private final TokenService tokenService;
 
     @Operation(summary = "Log in",
@@ -45,22 +42,9 @@ public class AuthController {
     @Transactional
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request,
                                                HttpServletResponse response) {
-        AppUser user = userRepository.findByEmailWithRoles(request.email())
-                .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
-
-        // same error either way: a distinct "no such user" reply enumerates accounts
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new UnauthorizedException("Invalid credentials");
-        }
-        if (user.getStatus() == UserStatus.SUSPENDED || user.getStatus() == UserStatus.CLOSED) {
-            throw new UnauthorizedException("Account is " + user.getStatus());
-        }
-
-        String access = tokenService.issueAccessToken(user);
-        String refresh = tokenService.issueRefreshToken(user);
-        setCookies(response, access, refresh);
-
-        return ResponseEntity.ok(body(user, access));
+        AuthService.Session session = authService.login(request.email(), request.password());
+        authCookies.set(response, session.accessToken(), session.refreshToken());
+        return ResponseEntity.ok(body(session.user(), session.accessToken()));
     }
 
     @Operation(summary = "Rotate the refresh token",
@@ -79,13 +63,13 @@ public class AuthController {
 
         TokenService.RotationResult result = tokenService.rotate(presented);
         if (!result.accepted()) {
-            clearCookies(response);
+            authCookies.clear(response);
             throw new UnauthorizedException(result.reason());
         }
 
         AppUser user = userRepository.findByEmailWithRoles(result.user().getEmail()).orElseThrow();
         String access = tokenService.issueAccessToken(user);
-        setCookies(response, access, result.refreshToken());
+        authCookies.set(response, access, result.refreshToken());
         return ResponseEntity.ok(body(user, access));
     }
 
@@ -96,7 +80,7 @@ public class AuthController {
         AppUser user = userRepository.findByPublicId(UUID.fromString(jwt.getSubject()))
                 .orElseThrow(() -> new NotFoundException("Unknown user"));
         tokenService.revokeAllForUser(user.getId());
-        clearCookies(response);
+        authCookies.clear(response);
         return ResponseEntity.noContent().build();
     }
 
@@ -116,30 +100,5 @@ public class AuthController {
                                  user.getPublicId(), user.getEmail(), roles);
     }
 
-    private void setCookies(HttpServletResponse response, String access, String refresh) {
-        response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie
-                .from(SecurityConfig.ACCESS_COOKIE, access)
-                .httpOnly(true).secure(false)          // secure(true) behind TLS
-                .sameSite("Lax").path("/")
-                .maxAge(tokenService.accessTokenSeconds())
-                .build().toString());
 
-        // scoped to the refresh endpoint, so it is not attached to every request
-        response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie
-                .from(SecurityConfig.REFRESH_COOKIE, refresh)
-                .httpOnly(true).secure(false)
-                .sameSite("Strict").path(SecurityConfig.REFRESH_PATH)
-                .maxAge(tokenService.refreshTokenSeconds())
-                .build().toString());
-    }
-
-    private void clearCookies(HttpServletResponse response) {
-        response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie
-                .from(SecurityConfig.ACCESS_COOKIE, "").httpOnly(true).path("/").maxAge(0)
-                .build().toString());
-        response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie
-                .from(SecurityConfig.REFRESH_COOKIE, "").httpOnly(true)
-                .path(SecurityConfig.REFRESH_PATH).maxAge(0)
-                .build().toString());
-    }
 }

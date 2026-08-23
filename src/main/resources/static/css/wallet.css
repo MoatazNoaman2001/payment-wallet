@@ -1,0 +1,83 @@
+:root {
+    --bg: #0f1420;
+    --panel: #171d2c;
+    --line: #26304a;
+    --text: #e8ecf5;
+    --muted: #8b97b0;
+    --accent: #4f8cff;
+    --credit: #3ecf8e;
+    --debit: #ff7a7a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px; border-bottom: 1px solid var(--line); background: var(--panel);
+}
+.brand { font-weight: 600; letter-spacing: .2px; }
+.brand span { color: var(--accent); }
+.who { color: var(--muted); font-size: 13px; }
+
+.wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.sub { color: var(--muted); margin: 0 0 26px; font-size: 14px; }
+
+.card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 20px 22px; margin-bottom: 14px;
+}
+.card-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.acct-number { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 15px; }
+.meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.balance { font-size: 22px; font-weight: 600; white-space: nowrap; }
+.ccy { color: var(--muted); font-size: 13px; font-weight: 400; margin-left: 4px; }
+
+.pill {
+    display: inline-block; padding: 2px 9px; border-radius: 999px;
+    font-size: 11px; letter-spacing: .4px; border: 1px solid var(--line); color: var(--muted);
+}
+.pill.active { color: var(--credit); border-color: rgba(62,207,142,.35); }
+.pill.frozen, .pill.closed { color: var(--debit); border-color: rgba(255,122,122,.35); }
+
+.total { display: flex; justify-content: space-between; color: var(--muted);
+         padding: 14px 22px; font-size: 14px; }
+
+.empty { text-align: center; color: var(--muted); padding: 40px 0; }
+
+/* login */
+.login-wrap { max-width: 380px; margin: 9vh auto; padding: 0 20px; }
+label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+input[type=email], input[type=password] {
+    width: 100%; padding: 11px 13px; border-radius: 8px;
+    border: 1px solid var(--line); background: #10162340; color: var(--text); font-size: 15px;
+}
+input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+button {
+    width: 100%; margin-top: 22px; padding: 11px; border: 0; border-radius: 8px;
+    background: var(--accent); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+button:hover { filter: brightness(1.08); }
+.linkbtn { width: auto; background: none; color: var(--muted); font-weight: 400;
+           font-size: 13px; padding: 0; margin: 0; }
+.linkbtn:hover { color: var(--text); filter: none; text-decoration: underline; }
+
+.error {
+    margin-top: 16px; padding: 10px 13px; border-radius: 8px; font-size: 14px;
+    background: rgba(255,122,122,.10); border: 1px solid rgba(255,122,122,.35); color: #ffb3b3;
+}
+.notice {
+    margin-top: 16px; padding: 10px 13px; border-radius: 8px; font-size: 14px;
+    background: rgba(62,207,142,.10); border: 1px solid rgba(62,207,142,.30); color: #9ff0c9;
+}
+.hint { margin-top: 22px; color: var(--muted); font-size: 12.5px; line-height: 1.7; }

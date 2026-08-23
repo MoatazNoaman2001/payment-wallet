@@ -7,10 +7,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -26,6 +29,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Stateless resource server. The access token is a signed JWT carried in an HttpOnly
@@ -54,18 +58,42 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(Customizer.withDefaults())
-            .csrf(AbstractHttpConfigurer::disable)     // see README: enable with a UI, not needed for token clients
+            // CSRF is on for the browser pages, because cookies are attached automatically
+            // and a form post from another origin would otherwise be authenticated. The
+            // JSON API is exempt: its clients send an explicit header, which no cross-site
+            // form can do. The cookie repository is used rather than the session one
+            // because this filter chain is stateless.
+            .csrf(csrf -> csrf
+                    .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                    .ignoringRequestMatchers("/api/**"))
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/api/auth/login", "/api/auth/refresh").permitAll()
+                    .requestMatchers("/login", "/css/**", "/favicon.ico").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
                     .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     .anyRequest().authenticated())
+            // a browser asking for HTML should be sent to the sign-in page; an API client
+            // asking for JSON should get 401 and no redirect
+            .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
+                    new LoginUrlAuthenticationEntryPoint("/login"), htmlRequestMatcher()))
             .oauth2ResourceServer(oauth -> oauth
                     .bearerTokenResolver(cookieOrHeaderTokenResolver())
                     .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();
+    }
+
+    /**
+     * Matches only a request that explicitly asks for HTML. Without ignoring MediaType.ALL,
+     * a request with no Accept header counts as "*​/*", which is compatible with text/html —
+     * so an API call carrying no Accept would be redirected to the login page instead of
+     * getting a 401.
+     */
+    private MediaTypeRequestMatcher htmlRequestMatcher() {
+        MediaTypeRequestMatcher matcher = new MediaTypeRequestMatcher(MediaType.TEXT_HTML);
+        matcher.setIgnoredMediaTypes(Set.of(MediaType.ALL));
+        return matcher;
     }
 
     /** Reads the JWT from the HttpOnly cookie first, then falls back to Authorization: Bearer. */

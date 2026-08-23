@@ -93,6 +93,13 @@ HS256 JWT delivered in an `HttpOnly` cookie, so a cross-site script cannot read 
 an opaque random string stored as a SHA-256 hash, single use, and rotated on every use;
 replaying a spent one revokes every token descended from that login.
 
+**The browser UI needed no new auth.** Because the access token is delivered as an
+HttpOnly cookie, a form login sets it and the browser attaches it to every later page
+request on its own — no JavaScript, no token handling in the client. CSRF protection is
+enabled for the pages (cookies are sent automatically, so a cross-site form post would
+otherwise be authenticated) and left off for `/api/**`, whose clients send an explicit
+header that no cross-site form can forge.
+
 **Every log line carries a request id.** A servlet filter puts one in the SLF4J MDC and
 echoes it as `X-Request-Id`, so a single request can be followed through interleaved
 concurrent logs:
@@ -165,8 +172,12 @@ Full DDL: [`V1__init.sql`](src/main/resources/db/migration/V1__init.sql)
 
 Interactive docs at **http://localhost:8080/swagger-ui.html**
 
+There is also a small server-rendered UI (Thymeleaf): `/login` and `/accounts`.
+
 | Method | Path | Purpose | Access |
 |---|---|---|---|
+| `GET`/`POST` | `/login` | sign-in page and form | public |
+| `GET` | `/accounts` (HTML) | the caller's accounts | authenticated |
 | `POST` | `/api/auth/login` | issue access + refresh cookies | public |
 | `POST` | `/api/auth/refresh` | rotate the refresh token | public |
 | `POST` | `/api/auth/logout` | revoke every refresh token | authenticated |
@@ -315,6 +326,8 @@ joins, and the four kinds of JPA projection.
 - [x] Reversal flow (compensating transfer, never a delete)
 - [x] Reconciliation job and outbox publisher
 - [x] Actuator health, correlation-id logging, Docker + Compose
+- [x] Thymeleaf pages: login, accounts
+- [ ] Thymeleaf pages: statement, transfer form
 - [ ] Testcontainers, metrics
 
 Not implemented yet: fees (a third ledger leg into a fee account), persisted `FAILED`
