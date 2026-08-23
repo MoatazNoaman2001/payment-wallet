@@ -172,13 +172,15 @@ Full DDL: [`V1__init.sql`](src/main/resources/db/migration/V1__init.sql)
 
 Interactive docs at **http://localhost:8080/swagger-ui.html**
 
-There is also a small server-rendered UI (Thymeleaf): sign in, account list, and a filterable statement.
+There is also a small server-rendered UI (Thymeleaf): sign in, account list, a filterable
+statement, and an operations page. It is responsive and shares the API's authorization rules.
 
 | Method | Path | Purpose | Access |
 |---|---|---|---|
 | `GET`/`POST` | `/login` | sign-in page and form | public |
-| `GET` | `/accounts` (HTML) | the caller's accounts | authenticated |
-| `GET` | `/accounts/{n}/statement` (HTML) | paginated, filterable statement | owner |
+| `GET` | `/accounts` (HTML) | own accounts, or every account for staff | authenticated |
+| `GET` | `/accounts/{n}/statement` (HTML) | paginated, filterable statement | owner or staff |
+| `GET` | `/admin` (HTML) | reconciliation status and outbox backlog | **admin** |
 | `POST` | `/api/auth/login` | issue access + refresh cookies | public |
 | `POST` | `/api/auth/refresh` | rotate the refresh token | public |
 | `POST` | `/api/auth/logout` | revoke every refresh token | authenticated |
@@ -335,6 +337,7 @@ joins, and the four kinds of JPA projection.
 - [x] Actuator health, correlation-id logging, Docker + Compose
 - [x] Thymeleaf pages: login, accounts
 - [x] Thymeleaf page: statement with filters and pagination
+- [x] Thymeleaf: navigation, staff account list, operations page, responsive layout
 - [ ] Thymeleaf page: transfer form
 - [ ] Testcontainers, metrics
 

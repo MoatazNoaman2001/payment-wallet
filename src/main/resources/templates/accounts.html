@@ -8,15 +8,19 @@
 </head>
 <body>
 
-<div th:replace="~{fragments/layout :: topbar}"></div>
+<div th:replace="~{fragments/layout :: topbar('accounts')}"></div>
 
 <div class="wrap">
-    <h1 class="page-title">Accounts</h1>
-    <p class="page-sub">Balances are a projection of the ledger, not the source of truth.</p>
+    <h1 class="page-title" th:text="${staff} ? 'All accounts' : 'Your accounts'">Accounts</h1>
+    <p class="page-sub" th:text="${staff}
+            ? 'Every account in the system. Balances are a projection of the ledger.'
+            : 'Balances are a projection of the ledger, not the source of truth.'">
+        Balances are a projection of the ledger, not the source of truth.
+    </p>
 
-    <div class="card" th:each="account : ${accounts}">
+    <div class="card" th:each="account : ${page.content}">
         <div class="card-row">
-            <div>
+            <div class="card-main">
                 <a class="acct-number"
                    th:href="@{/accounts/{n}/statement(n=${account.accountNumber})}"
                    th:text="${account.accountNumber}">PW0000000000000000</a>
@@ -25,10 +29,10 @@
                     <span class="badge"
                           th:classappend="${#strings.toLowerCase(account.status)}"
                           th:text="${account.status}">ACTIVE</span>
-                    <span class="dot" th:if="${account.dailyLimit != null}">·</span>
+                    <span th:if="${staff}" class="owner" th:text="${account.ownerEmail}">someone@example.com</span>
                     <span th:if="${account.dailyLimit != null}"
-                          th:text="'daily limit ' + ${#numbers.formatDecimal(account.dailyLimit, 1, 'COMMA', 2, 'POINT')}">
-                        daily limit 0.00
+                          th:text="'limit ' + ${#numbers.formatDecimal(account.dailyLimit, 1, 'COMMA', 2, 'POINT')}">
+                        limit 0.00
                     </span>
                 </div>
             </div>
@@ -40,13 +44,25 @@
         </div>
     </div>
 
-    <div class="empty" th:if="${accounts.isEmpty()}">
-        No accounts yet. Open one through the API or Swagger.
+    <div class="empty" th:if="${page.isEmpty()}">
+        <span th:if="${staff}">No accounts exist yet.</span>
+        <span th:unless="${staff}">You have no accounts yet.</span>
     </div>
 
-    <div class="summary" th:unless="${accounts.isEmpty()}">
-        <span th:text="${accounts.size()} + (${accounts.size()} == 1 ? ' account' : ' accounts')">0 accounts</span>
-        <span>total <strong th:text="${#numbers.formatDecimal(total, 1, 'COMMA', 2, 'POINT')}">0.00</strong></span>
+    <div class="summary" th:unless="${page.isEmpty()}">
+        <span th:text="${page.totalElements} + (${page.totalElements} == 1 ? ' account' : ' accounts')">0 accounts</span>
+        <span th:unless="${staff}">total
+            <strong th:text="${#numbers.formatDecimal(total, 1, 'COMMA', 2, 'POINT')}">0.00</strong></span>
+    </div>
+
+    <div class="pagination" th:if="${page.totalPages > 1}">
+        <span th:text="'Page ' + (${page.number} + 1) + ' of ' + ${page.totalPages}">Page 1 of 1</span>
+        <span class="pages">
+            <a class="btn btn-outline btn-sm" th:classappend="${page.first} ? 'disabled'"
+               th:href="@{/accounts(page=${page.number - 1}, size=${page.size})}">Previous</a>
+            <a class="btn btn-outline btn-sm" th:classappend="${page.last} ? 'disabled'"
+               th:href="@{/accounts(page=${page.number + 1}, size=${page.size})}">Next</a>
+        </span>
     </div>
 </div>
 

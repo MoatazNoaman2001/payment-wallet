@@ -11,6 +11,7 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -132,6 +133,32 @@ class WebPagesTest {
     }
 
     @Test
+    @DisplayName("the admin operations page is admin only")
+    void adminPageIsAdminOnly() throws Exception {
+        mockMvc.perform(get("/admin").with(asUser(alice)).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/admin").with(asAdmin()).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("Operations")));
+    }
+
+    @Test
+    @DisplayName("staff see every account on the accounts page, a customer sees only their own")
+    void staffSeeEveryAccount() throws Exception {
+        mockMvc.perform(get("/accounts").with(asAdmin()).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("All accounts")))
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("SYSTEM-EGP")));
+
+        mockMvc.perform(get("/accounts").with(asUser(mallory)).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("Your accounts")))
+               .andExpect(content().string(org.hamcrest.Matchers.not(
+                       org.hamcrest.Matchers.containsString(aliceWallet.getAccountNumber()))));
+    }
+
+    @Test
     @DisplayName("Mallory cannot open the statement page for Alice's account")
     void statementPageEnforcesOwnership() throws Exception {
         mockMvc.perform(get("/accounts/{n}/statement", aliceWallet.getAccountNumber())
@@ -139,11 +166,22 @@ class WebPagesTest {
                .andExpect(status().isForbidden());
     }
 
+    private RequestPostProcessor asAdmin() {
+        return jwt()
+                .jwt(builder -> builder
+                        .subject(UUID.randomUUID().toString())
+                        .claim("email", "admin@paymentwallet.local")
+                        .claim("roles", List.of("ROLE_ADMIN")))
+                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"));
+    }
+
     private RequestPostProcessor asUser(AppUser user) {
-        return jwt().jwt(builder -> builder
-                .subject(user.getPublicId().toString())
-                .claim("email", user.getEmail())
-                .claim("roles", List.of("ROLE_CUSTOMER")));
+        return jwt()
+                .jwt(builder -> builder
+                        .subject(user.getPublicId().toString())
+                        .claim("email", user.getEmail())
+                        .claim("roles", List.of("ROLE_CUSTOMER")))
+                .authorities(new SimpleGrantedAuthority("ROLE_CUSTOMER"));
     }
 
     private AppUser newUser(String name) {

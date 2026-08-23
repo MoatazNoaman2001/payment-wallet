@@ -8,7 +8,7 @@
 </head>
 <body>
 
-<div th:replace="~{fragments/layout :: topbar}"></div>
+<div th:replace="~{fragments/layout :: topbar('accounts')}"></div>
 
 <div class="wrap" style="max-width:920px">
 
@@ -68,7 +68,8 @@
         </div>
     </form>
 
-    <div class="table-card" th:unless="${page.isEmpty()}">
+    <div class="table-wrap" th:unless="${page.isEmpty()}">
+    <div class="table-card">
         <table>
             <thead>
             <tr>
@@ -99,6 +100,7 @@
             </tr>
             </tbody>
         </table>
+    </div>
     </div>
 
     <div class="empty" th:if="${page.isEmpty()}">

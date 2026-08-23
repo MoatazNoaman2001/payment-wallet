@@ -1,6 +1,7 @@
 package com.moataz.paymentwallet.account;
 
 import com.moataz.paymentwallet.account.dto.AccountResponse;
+import com.moataz.paymentwallet.account.dto.AccountRow;
 import com.moataz.paymentwallet.account.dto.OpenAccountRequest;
 import com.moataz.paymentwallet.common.error.BusinessRuleException;
 import com.moataz.paymentwallet.common.error.NotFoundException;
@@ -77,6 +78,14 @@ public class AccountService {
             throw new NotFoundException("No user with id " + ownerPublicId);
         }
         return accountRepository.findPageByOwner(ownerPublicId, pageable).map(AccountResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AccountRow> listRows(UUID ownerPublicId, Pageable pageable) {
+        Page<Account> accounts = ownerPublicId == null
+                ? accountRepository.findPageWithOwner(pageable)
+                : accountRepository.findPageByOwner(ownerPublicId, pageable);
+        return accounts.map(AccountRow::from);
     }
 
     @Transactional(readOnly = true)

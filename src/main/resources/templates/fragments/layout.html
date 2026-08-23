@@ -2,8 +2,16 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 
-<div th:fragment="topbar" class="topbar">
-    <div class="brand">payment<span>wallet</span></div>
+<div th:fragment="topbar (active)" class="topbar">
+    <div class="topbar-left">
+        <a class="brand" th:href="@{/accounts}">payment<span>wallet</span></a>
+        <nav class="nav">
+            <a th:href="@{/accounts}" th:classappend="${active == 'accounts'} ? 'on'">Accounts</a>
+            <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin}"
+               th:classappend="${active == 'admin'} ? 'on'">Admin</a>
+            <a th:href="@{/swagger-ui.html}" target="_blank">API</a>
+        </nav>
+    </div>
     <div class="topbar-right">
         <span class="who" sec:authorize="isAuthenticated()"
               th:text="${#authentication.principal.claims['email']}">someone@example.com</span>

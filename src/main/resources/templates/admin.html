@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin · Payment Wallet</title>
+    <link rel="stylesheet" th:href="@{/css/wallet.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: topbar('admin')}"></div>
+
+<div class="wrap">
+    <h1 class="page-title">Operations</h1>
+    <p class="page-sub">Reconciliation and the transactional outbox.</p>
+
+    <div class="alert alert-ok" th:if="${param.published}" style="margin-bottom:18px">
+        Outbox drained.
+    </div>
+
+    <div class="card">
+        <div class="card-row">
+            <div>
+                <strong>Balance reconciliation</strong>
+                <div class="meta" th:if="${drift.isEmpty()}">
+                    <span class="badge active">HEALTHY</span>
+                    every balance agrees with the ledger
+                </div>
+                <div class="meta" th:unless="${drift.isEmpty()}">
+                    <span class="badge frozen">DRIFT</span>
+                    <span th:text="${drift.size()} + ' account(s) disagree with the ledger'">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-wrap" th:unless="${drift.isEmpty()}">
+        <div class="table-card">
+            <table>
+                <thead>
+                <tr>
+                    <th>Account</th>
+                    <th class="col-right">Balance</th>
+                    <th class="col-right">Ledger</th>
+                    <th class="col-right">Difference</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="d : ${drift}">
+                    <td class="mono" th:text="${d.accountNumber}">PW0000000000000000</td>
+                    <td class="col-right" th:text="${#numbers.formatDecimal(d.balance, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                    <td class="col-right" th:text="${#numbers.formatDecimal(d.ledgerBalance, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                    <td class="col-right amount debit"
+                        th:text="${#numbers.formatDecimal(d.balance.subtract(d.ledgerBalance), 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-row">
+            <div>
+                <strong>Outbox</strong>
+                <div class="meta">
+                    <span class="badge" th:classappend="${pending == 0} ? 'active'"
+                          th:text="${pending} + ' pending'">0 pending</span>
+                    events waiting to be published
+                </div>
+            </div>
+            <form th:action="@{/admin/outbox/publish}" method="post">
+                <button type="submit" class="btn btn-sm" th:disabled="${pending == 0}">Publish now</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
