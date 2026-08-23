@@ -15,7 +15,6 @@ import java.util.Map;
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 public class AdminController {
-
     private final ReconciliationService reconciliationService;
     private final OutboxPublisher outboxPublisher;
 

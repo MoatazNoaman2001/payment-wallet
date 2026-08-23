@@ -17,7 +17,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class StatementService {
-
     private final com.moataz.paymentwallet.transfer.LedgerEntryRepository ledgerEntryRepository;
     private final TransferRepository transferRepository;
     private final AccountRepository accountRepository;

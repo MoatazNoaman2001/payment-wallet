@@ -18,7 +18,6 @@ public record AccountResponse(
         BigDecimal dailyLimit,
         OffsetDateTime createdAt
 ) {
-    /** Touches user and currency, so it must be called while the session is open. */
     public static AccountResponse from(Account account) {
         return new AccountResponse(
                 account.getAccountNumber(),

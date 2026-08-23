@@ -2,16 +2,9 @@ spring:
   application:
     name: payment-wallet
 
-  # Reads .env from the project root as a property source. "optional:" means the app
-  # still starts without it (CI and containers supply real environment variables
-  # instead), and "[.properties]" tells Boot to parse the extensionless file as
-  # KEY=value. No dependency needed: this is built into Spring Boot.
   config:
     import: optional:file:.env[.properties]
 
-  # No fallback values on purpose. A default that repeats the real credential is
-  # the same leak in a different place, so a missing variable fails at startup
-  # with a clear message instead of silently connecting to something.
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -24,21 +17,16 @@ spring:
     baseline-on-migrate: false
 
   jpa:
-    open-in-view: false          # trap #2 — never rely on the OSIV session
+    open-in-view: false
     hibernate:
-      ddl-auto: validate         # trap #8 — Flyway owns the schema
+      ddl-auto: validate
     properties:
       hibernate:
-        generate_statistics: true   # trap #3 — count queries when hunting N+1
+        generate_statistics: true
         jdbc:
           time_zone: UTC
 
-# ---------------------------------------------------------------------------
-# API docs. springdoc reads the controllers and Bean Validation annotations,
-# so the schema stays in step with the code automatically.
-#   http://localhost:8080/swagger-ui.html   interactive UI
-#   http://localhost:8080/v3/api-docs       raw OpenAPI 3 JSON
-# ---------------------------------------------------------------------------
+# API docs: /swagger-ui.html and /v3/api-docs
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -46,11 +34,7 @@ springdoc:
     tags-sorter: alpha
     display-request-duration: true
 
-# ---------------------------------------------------------------------------
-# Auth. The signing key comes from the environment and has no fallback: a default
-# secret in source is the same as no secret. Generate one with
-#   openssl rand -base64 48
-# ---------------------------------------------------------------------------
+# Auth: see src/main/java/com/moataz/paymentwallet/auth/README.md
 security:
   jwt:
     secret: ${JWT_SECRET}
@@ -59,11 +43,7 @@ security:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
 
-# ---------------------------------------------------------------------------
-# Background jobs. The outbox publisher forwards events the transfer wrote in the
-# same transaction as the money; reconciliation recomputes balances from the ledger
-# and reports drift rather than silently repairing it.
-# ---------------------------------------------------------------------------
+# Background jobs: outbox publisher and balance reconciliation
 reliability:
   scheduling:
     enabled: true
@@ -72,10 +52,7 @@ reliability:
   reconciliation:
     interval-ms: 300000
 
-# ---------------------------------------------------------------------------
-# Observability. %X{requestId} reads the MDC value set by CorrelationIdFilter, so
-# every line logged while handling one request carries the same id.
-# ---------------------------------------------------------------------------
+# Observability: requestId comes from CorrelationIdFilter
 logging:
   pattern:
     console: "%d{HH:mm:ss.SSS} [%X{requestId:---------}] %-5level %logger{32} : %msg%n"
@@ -87,7 +64,7 @@ management:
         include: health,info
   endpoint:
     health:
-      show-details: when-authorized     # anonymous callers get UP/DOWN and nothing else
+      show-details: when-authorized
   info:
     env:
       enabled: true

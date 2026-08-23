@@ -21,7 +21,6 @@ import java.util.UUID;
 @Tag(name = "Cash", description = "Deposits and withdrawals against the settlement account")
 @Validated
 public class CashController {
-
     private final CashService cashService;
 
     private final CurrentUser currentUser;
@@ -42,7 +41,6 @@ public class CashController {
             @PathVariable String accountNumber,
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 64) String idempotencyKey,
             @Valid @RequestBody CashRequest request) {
-
         return ResponseEntity.status(201)
                 .body(cashService.deposit(accountNumber, currentUser.publicId(), request, idempotencyKey));
     }
@@ -57,7 +55,6 @@ public class CashController {
             @PathVariable String accountNumber,
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 64) String idempotencyKey,
             @Valid @RequestBody CashRequest request) {
-
         return ResponseEntity.status(201)
                 .body(cashService.withdraw(accountNumber, currentUser.publicId(), request, idempotencyKey));
     }

@@ -26,18 +26,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Creates a small, coherent demo dataset by calling the real services, so every balance
- * has proper ledger entries behind it. Off unless demo.seed=true, and a no-op if the demo
- * users already exist.
- *
- *   ./mvnw spring-boot:run -Dspring-boot.run.arguments=--demo.seed=true
- */
 @Component
 @ConditionalOnProperty(name = "demo.seed", havingValue = "true")
 @RequiredArgsConstructor
 public class DemoDataSeeder implements ApplicationRunner {
-
     private static final Logger log = LoggerFactory.getLogger(DemoDataSeeder.class);
     private static final String PASSWORD = "demo-pass-12345";
 

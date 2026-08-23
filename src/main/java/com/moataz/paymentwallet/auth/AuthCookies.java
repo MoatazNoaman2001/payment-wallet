@@ -7,24 +7,15 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
-/**
- * One definition of how the auth cookies are written, shared by the JSON API and the
- * browser pages.
- *
- * HttpOnly so page scripts cannot read the tokens; the refresh cookie is additionally
- * scoped to the refresh endpoint so it is not attached to every request, and SameSite
- * Strict so it never rides a cross-site navigation.
- */
 @Component
 @RequiredArgsConstructor
 public class AuthCookies {
-
     private final TokenService tokenService;
 
     public void set(HttpServletResponse response, String accessToken, String refreshToken) {
         response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie
                 .from(SecurityConfig.ACCESS_COOKIE, accessToken)
-                .httpOnly(true).secure(false)          // secure(true) behind TLS
+                .httpOnly(true).secure(false)
                 .sameSite("Lax").path("/")
                 .maxAge(tokenService.accessTokenSeconds())
                 .build().toString());

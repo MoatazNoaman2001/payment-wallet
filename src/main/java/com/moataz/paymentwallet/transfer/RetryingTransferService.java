@@ -10,18 +10,9 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * The retry loop lives in a separate bean on purpose. If attempt() were called from
- * another method of OptimisticTransferService, the call would not pass through the
- * Spring proxy, so every retry would reuse the same failed transaction.
- *
- * Deliberately NOT @Transactional: each attempt needs its own transaction, because a
- * rolled-back one can never succeed.
- */
 @Service
 @RequiredArgsConstructor
 public class RetryingTransferService {
-
     private static final int MAX_ATTEMPTS = 50;
 
     private final OptimisticTransferService optimisticTransferService;
@@ -41,7 +32,6 @@ public class RetryingTransferService {
         throw last;
     }
 
-    /** In production this would be a Micrometer counter. */
     public long retryCount() {
         return retries.get();
     }

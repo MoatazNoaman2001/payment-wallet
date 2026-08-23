@@ -16,7 +16,6 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 public class OutboxEvent {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

@@ -2,6 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Accounts · Payment Wallet</title>
     <link rel="stylesheet" th:href="@{/css/wallet.css}">
 </head>
@@ -10,32 +11,29 @@
 <div th:replace="~{fragments/layout :: topbar}"></div>
 
 <div class="wrap">
-    <h1>Your accounts</h1>
-    <p class="sub">Balances are a projection of the ledger, not the source of truth.</p>
+    <h1 class="page-title">Accounts</h1>
+    <p class="page-sub">Balances are a projection of the ledger, not the source of truth.</p>
 
-    <!--
-      th:each is Blade's @foreach. The markup below is also valid standalone HTML:
-      opening this file in a browser shows the placeholder row, which is the point of
-      Thymeleaf's "natural templates".
-    -->
     <div class="card" th:each="account : ${accounts}">
         <div class="card-row">
             <div>
                 <div class="acct-number" th:text="${account.accountNumber}">PW0000000000000000</div>
                 <div class="meta">
-                    <span th:text="${account.type}">WALLET</span>
-                    &nbsp;·&nbsp;
-                    <span class="pill"
+                    <span class="badge outline" th:text="${account.type}">WALLET</span>
+                    <span class="badge"
                           th:classappend="${#strings.toLowerCase(account.status)}"
                           th:text="${account.status}">ACTIVE</span>
+                    <span class="dot" th:if="${account.dailyLimit != null}">·</span>
                     <span th:if="${account.dailyLimit != null}"
-                          th:text="' · daily limit ' + ${#numbers.formatDecimal(account.dailyLimit, 1, 'COMMA', 2, 'POINT')}">
+                          th:text="'daily limit ' + ${#numbers.formatDecimal(account.dailyLimit, 1, 'COMMA', 2, 'POINT')}">
+                        daily limit 0.00
                     </span>
                 </div>
             </div>
             <div class="balance">
-                <span th:text="${#numbers.formatDecimal(account.balance, 1, 'COMMA', 2, 'POINT')}">0.00</span>
-                <span class="ccy" th:text="${account.currencyCode}">EGP</span>
+                <span class="balance-amount"
+                      th:text="${#numbers.formatDecimal(account.balance, 1, 'COMMA', 2, 'POINT')}">0.00</span>
+                <span class="balance-ccy" th:text="${account.currencyCode}">EGP</span>
             </div>
         </div>
     </div>
@@ -44,9 +42,9 @@
         No accounts yet. Open one through the API or Swagger.
     </div>
 
-    <div class="total" th:unless="${accounts.isEmpty()}">
-        <span th:text="${accounts.size()} + ' account(s)'">0 account(s)</span>
-        <span th:text="'total ' + ${#numbers.formatDecimal(total, 1, 'COMMA', 2, 'POINT')}">total 0.00</span>
+    <div class="summary" th:unless="${accounts.isEmpty()}">
+        <span th:text="${accounts.size()} + (${accounts.size()} == 1 ? ' account' : ' accounts')">0 accounts</span>
+        <span>total <strong th:text="${#numbers.formatDecimal(total, 1, 'COMMA', 2, 'POINT')}">0.00</strong></span>
     </div>
 </div>
 

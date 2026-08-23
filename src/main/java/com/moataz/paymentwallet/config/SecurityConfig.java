@@ -31,19 +31,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Stateless resource server. The access token is a signed JWT carried in an HttpOnly
- * cookie (so a cross-site script cannot read it) with the Authorization header accepted
- * as a fallback, which is what lets Swagger and curl work by hand.
- *
- * Cookies are sent by the browser automatically, so CSRF protection matters here in a way
- * it would not for a header-only API. SameSite plus Spring's double-submit cookie token
- * cover it; GET endpoints are exempt because they change nothing.
- */
 @Configuration
-@EnableMethodSecurity          // turns on @PreAuthorize
+@EnableMethodSecurity
 public class SecurityConfig {
-
     public static final String ACCESS_COOKIE = "access_token";
     public static final String REFRESH_COOKIE = "refresh_token";
     public static final String REFRESH_PATH = "/api/auth/refresh";
@@ -58,11 +48,6 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(Customizer.withDefaults())
-            // CSRF is on for the browser pages, because cookies are attached automatically
-            // and a form post from another origin would otherwise be authenticated. The
-            // JSON API is exempt: its clients send an explicit header, which no cross-site
-            // form can do. The cookie repository is used rather than the session one
-            // because this filter chain is stateless.
             .csrf(csrf -> csrf
                     .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                     .ignoringRequestMatchers("/api/**"))
@@ -74,8 +59,6 @@ public class SecurityConfig {
                     .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     .anyRequest().authenticated())
-            // a browser asking for HTML should be sent to the sign-in page; an API client
-            // asking for JSON should get 401 and no redirect
             .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
                     new LoginUrlAuthenticationEntryPoint("/login"), htmlRequestMatcher()))
             .oauth2ResourceServer(oauth -> oauth
@@ -84,19 +67,12 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Matches only a request that explicitly asks for HTML. Without ignoring MediaType.ALL,
-     * a request with no Accept header counts as "*​/*", which is compatible with text/html —
-     * so an API call carrying no Accept would be redirected to the login page instead of
-     * getting a 401.
-     */
     private MediaTypeRequestMatcher htmlRequestMatcher() {
         MediaTypeRequestMatcher matcher = new MediaTypeRequestMatcher(MediaType.TEXT_HTML);
         matcher.setIgnoredMediaTypes(Set.of(MediaType.ALL));
         return matcher;
     }
 
-    /** Reads the JWT from the HttpOnly cookie first, then falls back to Authorization: Bearer. */
     @Bean
     public BearerTokenResolver cookieOrHeaderTokenResolver() {
         var header = new org.springframework.security.oauth2.server.resource.web
@@ -116,7 +92,6 @@ public class SecurityConfig {
         };
     }
 
-    /** Maps the "roles" claim onto Spring authorities. Names already carry the ROLE_ prefix. */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
@@ -145,7 +120,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(allowedOrigins);      // never "*" together with credentials
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

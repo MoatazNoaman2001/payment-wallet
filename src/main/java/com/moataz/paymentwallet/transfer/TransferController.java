@@ -24,7 +24,6 @@ import java.util.List;
 @Tag(name = "Transfers", description = "The transfer engine: idempotent, double-entry, locked")
 @Validated
 public class TransferController {
-
     private final TransferService transferService;
     private final ReversalService reversalService;
     private final CurrentUser currentUser;
@@ -45,7 +44,6 @@ public class TransferController {
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 64) String idempotencyKey,
             @Valid @RequestBody TransferRequest request,
             UriComponentsBuilder uriBuilder) {
-
         TransferResponse response = transferService.execute(request, idempotencyKey,
                                                             currentUser.publicId());
         URI location = uriBuilder.path("/api/transfers/{reference}")

@@ -17,21 +17,15 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
-/**
- * Everything both locking strategies do identically. The only difference between
- * TransferService and OptimisticTransferService is how they obtain the two accounts.
- */
 @Component
 @RequiredArgsConstructor
 class TransferSupport {
-
     private final TransferRepository transferRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
     private final OutboxEventRepository outboxEventRepository;
 
     TransferResponse post(TransferRequest request, String idempotencyKey, UUID actorPublicId,
                           AppUser initiator, Account source, Account dest) {
-
         validate(request, source, dest);
 
         Transfer transfer = new Transfer();
@@ -87,7 +81,6 @@ class TransferSupport {
             throw new BusinessRuleException("Transfer currency " + request.currencyCode()
                     + " does not match account currency " + source.getCurrency().getCode());
         }
-        // a SYSTEM settlement account is allowed to go negative; a wallet is not
         if (source.getType() != AccountType.SYSTEM
                 && source.getBalance().compareTo(request.amount()) < 0) {
             throw new BusinessRuleException("Insufficient funds: balance "

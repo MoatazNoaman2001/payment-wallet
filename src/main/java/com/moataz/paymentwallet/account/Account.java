@@ -11,21 +11,12 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
-/**
- * A wallet. balance is a cached projection of the ledger (Phase 2 keeps it in step);
- * the ledger stays the source of truth.
- *
- * Every @ManyToOne here is explicitly LAZY. JPA's default for @ManyToOne is EAGER,
- * which quietly joins (or re-queries) the parent on every single load — the most
- * common cause of surprise N+1 in a Spring Data app.
- */
 @Entity
 @Table(name = "account")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 public class Account {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -49,10 +40,6 @@ public class Account {
     @Column(nullable = false, length = 20)
     private AccountStatus status = AccountStatus.ACTIVE;
 
-    /**
-     * NUMERIC(19,4) -> BigDecimal. Never double: 0.1 + 0.2 != 0.3 in binary floating point,
-     * and money that is off by a cent is a bug you cannot argue your way out of.
-     */
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal balance = BigDecimal.ZERO;
 

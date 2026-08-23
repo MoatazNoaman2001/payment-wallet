@@ -8,13 +8,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
-/**
- * The single place identity is read from. Nothing in the application takes the caller's
- * identity from a request body or query parameter any more.
- */
 @Component
 public class CurrentUser {
-
     public UUID publicId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof Jwt jwt)) {

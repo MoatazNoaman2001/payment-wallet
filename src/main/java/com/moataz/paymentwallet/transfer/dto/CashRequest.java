@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
-/** Currency is not supplied: it is whatever the target account holds. */
 public record CashRequest(
 
         @NotNull(message = "amount is required")

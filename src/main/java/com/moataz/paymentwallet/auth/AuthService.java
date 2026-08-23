@@ -9,11 +9,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Shared by the JSON API and the browser pages, so there is one definition of "log in". */
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
@@ -23,7 +21,6 @@ public class AuthService {
         AppUser user = userRepository.findByEmailWithRoles(email)
                 .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
 
-        // same error either way: a distinct "no such user" reply enumerates accounts
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new UnauthorizedException("Invalid credentials");
         }

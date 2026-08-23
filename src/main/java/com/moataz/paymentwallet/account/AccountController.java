@@ -22,7 +22,6 @@ import java.util.UUID;
 @Tag(name = "Accounts", description = "Wallets. Balances change only through the ledger.")
 @RequiredArgsConstructor
 public class AccountController {
-
     private final AccountService accountService;
     private final CurrentUser currentUser;
 

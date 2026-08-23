@@ -18,11 +18,9 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/** Pessimistic strategy: SELECT ... FOR UPDATE on both accounts before validating. */
 @Service
 @RequiredArgsConstructor
 public class TransferService {
-
     private final TransferRepository transferRepository;
     private final AccountRepository accountRepository;
     private final AppUserRepository userRepository;
@@ -31,8 +29,6 @@ public class TransferService {
 
     @Transactional
     public TransferResponse execute(TransferRequest request, String idempotencyKey, UUID actorPublicId) {
-
-        // 1. idempotency: a retry returns the original result, it does not move money twice
         var existing = transferRepository.findByInitiatorAndKey(actorPublicId, idempotencyKey);
         if (existing.isPresent()) {
             return TransferResponse.from(existing.get());
@@ -47,14 +43,11 @@ public class TransferService {
             throw new BusinessRuleException("Source and destination must differ");
         }
 
-        // 2. lock both rows, always lowest id first. Concurrent A->B and B->A transfers
-        //    would deadlock if each locked its own source first.
         Account first = lock(Math.min(sourceId, destId));
         Account second = lock(Math.max(sourceId, destId));
         Account source = first.getId().equals(sourceId) ? first : second;
         Account dest = first.getId().equals(destId) ? first : second;
 
-        // 3-5. validate, write both legs, update balances, emit the outbox event
         return support.post(request, idempotencyKey, actorPublicId, initiator, source, dest);
     }
 
@@ -65,7 +58,6 @@ public class TransferService {
                 .orElseThrow(() -> new NotFoundException("No transfer " + reference));
     }
 
-    /** Replaces a transfer's tags. Tag names must already exist in the tag table. */
     @Transactional
     public List<String> replaceTags(String reference, Set<String> tagNames) {
         Transfer transfer = transferRepository.findWithTagsByReference(reference)

@@ -21,7 +21,6 @@ import java.util.Set;
 @Getter
 @Setter
 public class Transfer {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -78,7 +77,6 @@ public class Transfer {
     @Version
     private Long version;
 
-    /** Set only on a REVERSAL: points at the transfer being compensated. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reverses_transfer_id", updatable = false)
     private Transfer reversesTransfer;

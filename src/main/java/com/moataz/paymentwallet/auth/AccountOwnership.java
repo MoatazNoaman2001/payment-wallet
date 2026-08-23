@@ -7,15 +7,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
-/**
- * Referenced from @PreAuthorize as @ownership. Roles say what kind of thing you may do;
- * this says whose rows you may do it to. Without it, any authenticated customer could
- * read every other customer's statement.
- */
 @Component("ownership")
 @RequiredArgsConstructor
 public class AccountOwnership {
-
     private final AccountRepository accountRepository;
 
     public boolean ownsAccount(String accountNumber, Authentication authentication) {
@@ -27,7 +21,6 @@ public class AccountOwnership {
                 && accountRepository.findByAccountNumberAndUserPublicId(accountNumber, caller).isPresent();
     }
 
-    /** A transfer is visible to whoever owns either side of it. */
     public boolean canSeeTransfer(String reference, Authentication authentication) {
         if (isAdmin(authentication)) {
             return true;

@@ -8,19 +8,11 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
-/**
- * @OneToOne sharing the primary key with app_user (kyc_profile.user_id is both PK and FK).
- *
- * @MapsId is the piece worth remembering: it tells Hibernate "this entity's id IS the
- * id of the associated AppUser", so you never set userId by hand — set the user and
- * Hibernate copies the id across on flush.
- */
 @Entity
 @Table(name = "kyc_profile")
 @Getter
 @Setter
 public class KycProfile {
-
     @Id
     @Column(name = "user_id")
     private Long userId;

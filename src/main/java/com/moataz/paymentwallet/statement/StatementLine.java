@@ -7,7 +7,6 @@ import com.moataz.paymentwallet.transfer.TransferType;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
-/** One row of an account statement: a single ledger leg, from that account's side. */
 public record StatementLine(
         OffsetDateTime date,
         String reference,
@@ -20,7 +19,6 @@ public record StatementLine(
 ) {
     static StatementLine from(LedgerEntry entry) {
         var transfer = entry.getTransfer();
-        // the other side of the transfer, seen from this account
         String counterparty = entry.getDirection() == LedgerDirection.DEBIT
                 ? transfer.getDestAccount().getAccountNumber()
                 : transfer.getSourceAccount().getAccountNumber();

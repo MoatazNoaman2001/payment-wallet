@@ -22,15 +22,9 @@ import java.util.HexFormat;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * Access tokens are short-lived JWTs: signed, self-describing, never looked up.
- * Refresh tokens are long-lived opaque random strings: stored hashed, single use,
- * and rotated on every use so a replay can be detected.
- */
 @Service
 @RequiredArgsConstructor
 public class TokenService {
-
     private static final Logger log = LoggerFactory.getLogger(TokenService.class);
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -53,8 +47,6 @@ public class TokenService {
                 .claim("email", user.getEmail())
                 .claim("roles", user.getRoles().stream().map(Role::getName).collect(Collectors.toList()))
                 .build();
-        // the header must name the algorithm: the encoder defaults to RS256 and then
-        // fails to find a signing key, since ours is a symmetric secret
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
     }
@@ -67,16 +59,11 @@ public class TokenService {
         return refreshTokenDays * 24 * 60 * 60;
     }
 
-    /** A brand new family: this is a fresh login, not a rotation. */
     @Transactional
     public String issueRefreshToken(AppUser user) {
         return persist(user, UUID.randomUUID());
     }
 
-    /**
-     * Single-use rotation. Presenting a token that was already revoked means someone
-     * replayed an old copy, so every token descended from that login is killed.
-     */
     @Transactional
     public RotationResult rotate(String presentedToken) {
         String hash = sha256(presentedToken);
@@ -119,7 +106,7 @@ public class TokenService {
         entity.setExpiresAt(OffsetDateTime.now(ZoneOffset.UTC).plusDays(refreshTokenDays));
         refreshTokenRepository.save(entity);
 
-        return token;   // the only time the raw value exists outside the client
+        return token;
     }
 
     private String sha256(String value) {

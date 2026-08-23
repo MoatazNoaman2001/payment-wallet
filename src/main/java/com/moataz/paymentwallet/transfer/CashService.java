@@ -12,15 +12,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
-/**
- * Deposits and withdrawals are ordinary transfers against the SYSTEM settlement
- * account for the wallet's currency, so they inherit idempotency, locking, the
- * double-entry legs and the outbox event for free.
- */
 @Service
 @RequiredArgsConstructor
 public class CashService {
-
     private final TransferService transferService;
     private final AccountRepository accountRepository;
 
@@ -50,7 +44,6 @@ public class CashService {
                 request.description()), idempotencyKey, actorPublicId);
     }
 
-    /** The path variable is the customer account. The settlement side is chosen here. */
     private void requireWallet(String accountNumber, String action) {
         AccountType type = accountRepository.findTypeByAccountNumber(accountNumber)
                 .orElseThrow(() -> new NotFoundException("No account " + accountNumber));

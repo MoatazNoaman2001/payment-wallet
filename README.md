@@ -308,6 +308,11 @@ through the transfer module in detail: why the ledger exists, what each of the f
 in `execute()` defends against, and a full comparison of the two locking strategies with
 measured numbers.
 
+[`auth/README.md`](src/main/java/com/moataz/paymentwallet/auth/README.md) covers the
+security design: the three separate questions (authentication, authorization, ownership),
+why the refresh token is opaque and stored hashed, how reuse detection revokes a token
+family, and the XSS-versus-CSRF trade that comes with cookie delivery.
+
 [`statement/README.md`](src/main/java/com/moataz/paymentwallet/statement/README.md)
 covers the query side: pagination and its scaling limits, Specifications for dynamic
 filtering, `@EntityGraph` versus `join fetch` and why collections break paginated fetch

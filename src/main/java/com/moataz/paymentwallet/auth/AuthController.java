@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 @Tag(name = "Auth", description = "Login, refresh with rotation, logout")
 @RequiredArgsConstructor
 public class AuthController {
-
     private final AppUserRepository userRepository;
     private final AuthService authService;
     private final AuthCookies authCookies;
@@ -55,7 +54,6 @@ public class AuthController {
             @CookieValue(name = SecurityConfig.REFRESH_COOKIE, required = false) String cookieToken,
             @RequestParam(name = "refreshToken", required = false) String paramToken,
             HttpServletResponse response) {
-
         String presented = cookieToken != null ? cookieToken : paramToken;
         if (presented == null || presented.isBlank()) {
             throw new UnauthorizedException("No refresh token supplied");
@@ -99,6 +97,4 @@ public class AuthController {
         return new TokenResponse(access, tokenService.accessTokenSeconds(),
                                  user.getPublicId(), user.getEmail(), roles);
     }
-
-
 }

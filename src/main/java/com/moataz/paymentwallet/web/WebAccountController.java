@@ -14,7 +14,6 @@ import java.util.List;
 @Controller
 @RequiredArgsConstructor
 public class WebAccountController {
-
     private final AccountService accountService;
     private final CurrentUser currentUser;
 

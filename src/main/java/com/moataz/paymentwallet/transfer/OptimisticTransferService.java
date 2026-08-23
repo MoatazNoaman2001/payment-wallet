@@ -14,19 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-/**
- * Optimistic strategy: no database locks. Both accounts are read normally, and
- * Account.version turns each balance UPDATE into
- *   update account set balance=?, version=? where id=? and version=?
- * A concurrent writer that got there first leaves version stale, zero rows match,
- * and Hibernate throws OptimisticLockingFailureException at flush.
- *
- * Retrying is the caller's job — see RetryingTransferService.
- */
 @Service
 @RequiredArgsConstructor
 public class OptimisticTransferService {
-
     private final TransferRepository transferRepository;
     private final AccountRepository accountRepository;
     private final AppUserRepository userRepository;
@@ -34,7 +24,6 @@ public class OptimisticTransferService {
 
     @Transactional
     public TransferResponse attempt(TransferRequest request, String idempotencyKey, UUID actorPublicId) {
-
         var existing = transferRepository.findByInitiatorAndKey(actorPublicId, idempotencyKey);
         if (existing.isPresent()) {
             return TransferResponse.from(existing.get());

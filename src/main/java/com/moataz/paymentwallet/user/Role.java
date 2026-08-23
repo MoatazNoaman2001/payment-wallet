@@ -11,7 +11,6 @@ import java.util.Objects;
 @Getter
 @Setter
 public class Role {
-
     public static final String CUSTOMER = "ROLE_CUSTOMER";
     public static final String MERCHANT = "ROLE_MERCHANT";
     public static final String ADMIN    = "ROLE_ADMIN";
@@ -27,7 +26,7 @@ public class Role {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Role other)) return false;
-        return Objects.equals(name, other.name);   // name is UNIQUE — a real business key
+        return Objects.equals(name, other.name);
     }
 
     @Override

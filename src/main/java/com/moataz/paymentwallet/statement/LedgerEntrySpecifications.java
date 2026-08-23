@@ -7,16 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Dynamic WHERE clauses built with the Criteria API. Each filter that is null
- * contributes nothing, so one query method serves every combination instead of
- * findByAccountAndTypeAndAmountBetweenAnd... exploding combinatorially.
- *
- * root.get("transfer").get("type") is a path expression: Hibernate turns it into a
- * join on the @ManyToOne without you writing one.
- */
 final class LedgerEntrySpecifications {
-
     private LedgerEntrySpecifications() {
     }
 

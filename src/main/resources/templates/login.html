@@ -2,41 +2,38 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Sign in · Payment Wallet</title>
     <link rel="stylesheet" th:href="@{/css/wallet.css}">
 </head>
 <body>
 
-<div class="login-wrap">
-    <div class="brand" style="margin-bottom:22px">payment<span>wallet</span></div>
+<div class="login-page">
+    <div class="login-card">
+        <div class="brand" style="margin-bottom:20px">payment<span>wallet</span></div>
 
-    <div class="card">
-        <h1>Sign in</h1>
-        <p class="sub">Double-entry ledger demo</p>
+        <h1 class="login-title">Sign in</h1>
+        <p class="login-sub">Double-entry ledger demo</p>
 
-        <!--
-          Spring Security injects the CSRF hidden input into this form automatically.
-          th:action is what triggers it, so never write action="/login" by hand here.
-        -->
         <form th:action="@{/login}" method="post">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" required autofocus
-                   th:value="${email}" placeholder="mona@demo.local">
-
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" required placeholder="••••••••">
-
-            <button type="submit">Sign in</button>
+            <div class="field">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required autofocus
+                       th:value="${email}" placeholder="mona@demo.local">
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-block">Sign in</button>
         </form>
 
-        <!-- th:if renders the element only when the condition holds; absent otherwise -->
-        <div class="error" th:if="${error}" th:text="${error}">Email or password is incorrect</div>
-        <div class="notice" th:if="${param.loggedOut}">Signed out.</div>
+        <div class="alert alert-error" th:if="${error}" th:text="${error}">Email or password is incorrect</div>
+        <div class="alert alert-ok" th:if="${param.loggedOut}">You have been signed out.</div>
 
         <p class="hint">
-            Demo accounts:<br>
-            mona@demo.local &nbsp;·&nbsp; demo-pass-12345<br>
-            admin@paymentwallet.local &nbsp;·&nbsp; admin12345
+            <code>mona@demo.local</code> · <code>demo-pass-12345</code><br>
+            <code>admin@paymentwallet.local</code> · <code>admin12345</code>
         </p>
     </div>
 </div>

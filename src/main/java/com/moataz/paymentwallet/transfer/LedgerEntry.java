@@ -10,14 +10,12 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
-/** Append-only. Nothing in the application may ever update or delete a row here. */
 @Entity
 @Table(name = "ledger_entry")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 public class LedgerEntry {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

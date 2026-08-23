@@ -14,7 +14,6 @@ import java.util.List;
 
 public interface LedgerEntryRepository
         extends JpaRepository<LedgerEntry, Long>, JpaSpecificationExecutor<LedgerEntry> {
-
     @Override
     @EntityGraph(attributePaths = {"transfer", "transfer.sourceAccount", "transfer.destAccount"})
     Page<LedgerEntry> findAll(Specification<LedgerEntry> spec, Pageable pageable);
@@ -23,7 +22,6 @@ public interface LedgerEntryRepository
 
     void deleteByTransferIdIn(Collection<Long> transferIds);
 
-    /** Rebuilds a balance from the ledger. Used by the reconciliation test. */
     @Query("""
            select coalesce(sum(case when e.direction = com.moataz.paymentwallet.transfer.LedgerDirection.CREDIT
                                     then e.amount else -e.amount end), 0)

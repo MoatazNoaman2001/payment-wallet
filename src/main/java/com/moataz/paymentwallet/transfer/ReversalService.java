@@ -18,16 +18,9 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-/**
- * A reversal never deletes or edits anything. It writes a new transfer in the opposite
- * direction with its own pair of ledger legs, and marks the original REVERSED. The audit
- * trail then shows both what happened and that it was undone, which is the whole point of
- * an append-only ledger.
- */
 @Service
 @RequiredArgsConstructor
 public class ReversalService {
-
     private final TransferRepository transferRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
     private final OutboxEventRepository outboxEventRepository;
@@ -36,8 +29,6 @@ public class ReversalService {
 
     @Transactional
     public TransferResponse reverse(String reference, String reason, UUID actorPublicId) {
-
-        // idempotent: asking twice returns the reversal that already exists
         var alreadyReversed = transferRepository.findReversalOf(reference);
         if (alreadyReversed.isPresent()) {
             return TransferResponse.from(alreadyReversed.get());
@@ -51,13 +42,12 @@ public class ReversalService {
         AppUser actor = userRepository.findByPublicId(actorPublicId)
                 .orElseThrow(() -> new NotFoundException("No user with id " + actorPublicId));
 
-        // same deterministic order as TransferService: lowest account id first
         Long originalSourceId = original.getSourceAccount().getId();
         Long originalDestId = original.getDestAccount().getId();
         Account first = lock(Math.min(originalSourceId, originalDestId));
         Account second = lock(Math.max(originalSourceId, originalDestId));
-        Account refundTo = first.getId().equals(originalSourceId) ? first : second;   // was debited
-        Account clawBackFrom = first.getId().equals(originalDestId) ? first : second; // was credited
+        Account refundTo = first.getId().equals(originalSourceId) ? first : second;
+        Account clawBackFrom = first.getId().equals(originalDestId) ? first : second;
 
         BigDecimal amount = original.getAmount();
 
@@ -65,7 +55,6 @@ public class ReversalService {
             throw new BusinessRuleException("Cannot reverse: account "
                     + clawBackFrom.getAccountNumber() + " is " + clawBackFrom.getStatus());
         }
-        // the awkward real-world case: the recipient already spent it
         if (clawBackFrom.getType() != com.moataz.paymentwallet.account.AccountType.SYSTEM
                 && clawBackFrom.getBalance().compareTo(amount) < 0) {
             throw new BusinessRuleException("Cannot reverse: " + clawBackFrom.getAccountNumber()
@@ -77,7 +66,7 @@ public class ReversalService {
         reversal.setReference(newReference());
         reversal.setIdempotencyKey("REVERSAL-" + original.getReference());
         reversal.setInitiatedBy(actor);
-        reversal.setSourceAccount(clawBackFrom);      // opposite direction
+        reversal.setSourceAccount(clawBackFrom);
         reversal.setDestAccount(refundTo);
         reversal.setAmount(amount);
         reversal.setCurrency(original.getCurrency());
@@ -90,7 +79,6 @@ public class ReversalService {
         try {
             transferRepository.saveAndFlush(reversal);
         } catch (DataIntegrityViolationException ex) {
-            // lost the race on uq_transfer_reversal: someone reversed it a moment ago
             return transferRepository.findReversalOf(reference)
                     .map(TransferResponse::from)
                     .orElseThrow(() -> ex);
@@ -114,7 +102,6 @@ public class ReversalService {
         return TransferResponse.from(reversal);
     }
 
-    /** The allowed transitions: only POSTED -> REVERSED, and a reversal is never itself reversed. */
     private void requireReversible(Transfer original) {
         if (original.getType() == TransferType.REVERSAL) {
             throw new BusinessRuleException("A reversal cannot itself be reversed");

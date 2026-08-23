@@ -21,7 +21,6 @@ import java.util.List;
 @RequestMapping("/api/accounts/{accountNumber}")
 @Tag(name = "Statements", description = "Paginated statement and spend analytics")
 public class StatementController {
-
     private final StatementService statementService;
 
     public StatementController(StatementService statementService) {
@@ -42,7 +41,6 @@ public class StatementController {
             @RequestParam(required = false) BigDecimal minAmount,
             @RequestParam(required = false) BigDecimal maxAmount,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-
         StatementFilter filter = new StatementFilter(from, to, type, direction, minAmount, maxAmount);
         return statementService.statement(accountNumber, filter, pageable);
     }
@@ -54,7 +52,6 @@ public class StatementController {
     public List<TagSpendRow> spendByTag(
             @PathVariable String accountNumber,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
-
         return statementService.spendByTag(accountNumber, month);
     }
 }

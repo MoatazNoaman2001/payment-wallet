@@ -20,20 +20,11 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AccountService {
-
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final AccountRepository accountRepository;
     private final AppUserRepository userRepository;
     private final CurrencyRepository currencyRepository;
-
-//    public AccountService(AccountRepository accountRepository,
-//                          AppUserRepository userRepository,
-//                          CurrencyRepository currencyRepository) {
-//        this.accountRepository = accountRepository;
-//        this.userRepository = userRepository;
-//        this.currencyRepository = currencyRepository;
-//    }
 
     @Transactional
     public AccountResponse open(OpenAccountRequest request, UUID ownerPublicId) {
@@ -54,7 +45,7 @@ public class AccountService {
         account.setCurrency(currency);
         account.setType(request.type());
         account.setStatus(AccountStatus.ACTIVE);
-        account.setBalance(BigDecimal.ZERO);      // money only ever enters through the ledger
+        account.setBalance(BigDecimal.ZERO);
         account.setDailyLimit(request.dailyLimit());
 
         return AccountResponse.from(accountRepository.save(account));
@@ -72,13 +63,11 @@ public class AccountService {
         if (!userRepository.findByPublicId(ownerPublicId).isPresent()) {
             throw new NotFoundException("No user with id " + ownerPublicId);
         }
-        // findAllByOwner uses join fetch, so this is ONE query no matter how many accounts.
         return accountRepository.findAllByOwner(ownerPublicId).stream()
                 .map(AccountResponse::from)
                 .toList();
     }
 
-    /** PW + 16 digits, comfortably inside VARCHAR(24). Retries on the astronomically rare clash. */
     private String generateAccountNumber() {
         for (int attempt = 0; attempt < 5; attempt++) {
             StringBuilder sb = new StringBuilder("PW");

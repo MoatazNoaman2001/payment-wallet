@@ -15,22 +15,10 @@ import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * One place that turns exceptions into RFC 7807 responses (Content-Type:
- * application/problem+json). Without this, Bean Validation failures come back as a
- * wall of Spring's internal detail, and anything unexpected leaks a stack trace.
- *
- * ProblemDetail is built into Spring Framework 6+ — no extra library needed.
- * The shape is standard:
- *   { "type": ..., "title": ..., "status": ..., "detail": ..., "instance": ... }
- * plus any custom properties you attach.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    /** Fired when a @Valid @RequestBody fails Bean Validation. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
@@ -38,7 +26,6 @@ public class GlobalExceptionHandler {
         problem.setTitle("Validation failed");
         problem.setDetail("One or more fields are invalid");
 
-        // field -> message, so the client can highlight the offending input
         Map<String, String> errors = new LinkedHashMap<>();
         ex.getBindingResult().getFieldErrors()
           .forEach(fe -> errors.putIfAbsent(fe.getField(), fe.getDefaultMessage()));
@@ -46,7 +33,6 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
-    /** Malformed JSON, or an enum value that is not one of the constants. */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ProblemDetail handleUnreadable(HttpMessageNotReadableException ex) {
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
@@ -63,7 +49,6 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
-    /** Bad or missing credentials. */
     @ExceptionHandler(UnauthorizedException.class)
     public ProblemDetail handleUnauthorized(UnauthorizedException ex) {
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
@@ -72,11 +57,6 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
-    /**
-     * Authenticated, but not yours. Covers AuthorizationDeniedException from @PreAuthorize.
-     * The detail is deliberately vague: telling someone an account exists but is not theirs
-     * still leaks that it exists.
-     */
     @ExceptionHandler(AccessDeniedException.class)
     public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.FORBIDDEN);
@@ -101,11 +81,6 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
-    /**
-     * The safety net: a UNIQUE or CHECK constraint the service check missed, e.g. two
-     * requests registering the same email at the same instant. The database is the
-     * last line of defence and it does not lose races.
-     */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail handleConstraint(DataIntegrityViolationException ex) {
         log.warn("Database constraint violated", ex);
@@ -115,7 +90,6 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
-    /** Anything unhandled: log the real cause, tell the client nothing useful to an attacker. */
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleUnexpected(Exception ex) {
         log.error("Unhandled exception", ex);

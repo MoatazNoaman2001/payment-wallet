@@ -13,7 +13,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface TransferRepository extends JpaRepository<Transfer, Long> {
-
     @Query("""
            select t from Transfer t
              join fetch t.sourceAccount
@@ -43,11 +42,6 @@ public interface TransferRepository extends JpaRepository<Transfer, Long> {
            """)
     BigDecimal sumPostedSince(Long accountId, OffsetDateTime since);
 
-    /**
-     * A constructor expression: the query selects three scalars straight into a record.
-     * No Transfer or Tag entity is ever materialised, nothing enters the persistence
-     * context, and there is nothing to dirty-check.
-     */
     @Query("""
            select new com.moataz.paymentwallet.statement.TagSpendRow(
                       tg.name, sum(t.amount), count(t))
@@ -65,7 +59,6 @@ public interface TransferRepository extends JpaRepository<Transfer, Long> {
     @EntityGraph(attributePaths = "tags")
     Optional<Transfer> findWithTagsByReference(String reference);
 
-    /** The compensating transfer written for an original, if it has been reversed. */
     @Query("""
            select t from Transfer t
              join fetch t.sourceAccount
@@ -75,7 +68,6 @@ public interface TransferRepository extends JpaRepository<Transfer, Long> {
            """)
     Optional<Transfer> findReversalOf(String originalReference);
 
-    /** Every transfer that touches any of these accounts, on either side. */
     List<Transfer> findBySourceAccountIdInOrDestAccountIdIn(Collection<Long> source,
                                                             Collection<Long> dest);
 }
