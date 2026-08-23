@@ -185,9 +185,9 @@ receive.
 They are exempt from the insufficient-funds check and permitted to hold a negative balance
 — that is correct for a settlement account and catastrophic for one an ordinary user can
 create. An earlier version of this module accepted `type: SYSTEM` from any authenticated
-caller, which let a customer open one and transfer an unbounded amount out of it. Settlement
-accounts are created by migration alongside a currency; `Phase4SecurityTest` asserts the API
-refuses.
+caller, which let a customer open one and transfer an unbounded amount out of it. Settlement accounts are infrastructure, not user data: `SettlementAccountInitializer`
+ensures one exists per currency at every startup, so the system repairs itself if a row is
+ever lost. `Phase4SecurityTest` asserts the API refuses to create one.
 
 ---
 
