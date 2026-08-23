@@ -75,6 +75,21 @@ class Phase1IdentityAndAccountsTest {
     }
 
     @Test
+    @DisplayName("email uniqueness ignores case: the same mailbox cannot register twice")
+    void emailIsCaseInsensitive() throws Exception {
+        mockMvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON).content(VALID_USER))
+               .andExpect(status().isCreated())
+               .andExpect(jsonPath("$.email").value("mona@example.com"));
+
+        String shouted = """
+                {"email": "  MONA@Example.COM ", "phone": "+201234567891",
+                 "password": "supersecret1", "fullName": "Mona Again"}
+                """;
+        mockMvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON).content(shouted))
+               .andExpect(status().isConflict());
+    }
+
+    @Test
     @DisplayName("a duplicate email is a 409, not a 500 stack trace")
     void rejectsDuplicateEmail() throws Exception {
         mockMvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON).content(VALID_USER))

@@ -24,4 +24,9 @@ public record RegisterUserRequest(
         @Size(max = 150)
         String fullName
 ) {
+    public RegisterUserRequest {
+        email = email == null ? null : email.trim().toLowerCase(java.util.Locale.ROOT);
+        phone = phone == null ? null : phone.trim();
+        fullName = fullName == null ? null : fullName.trim();
+    }
 }

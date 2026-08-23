@@ -3,6 +3,7 @@ package com.moataz.paymentwallet.auth;
 import com.moataz.paymentwallet.common.error.UnauthorizedException;
 import com.moataz.paymentwallet.user.AppUser;
 import com.moataz.paymentwallet.user.AppUserRepository;
+import com.moataz.paymentwallet.user.UserService;
 import com.moataz.paymentwallet.user.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,7 +19,7 @@ public class AuthService {
 
     @Transactional
     public Session login(String email, String password) {
-        AppUser user = userRepository.findByEmailWithRoles(email)
+        AppUser user = userRepository.findByEmailWithRoles(UserService.normaliseEmail(email))
                 .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {

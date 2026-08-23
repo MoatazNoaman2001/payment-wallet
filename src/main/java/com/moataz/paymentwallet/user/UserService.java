@@ -20,11 +20,14 @@ public class UserService {
 
     @Transactional
     public UserResponse register(RegisterUserRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
-            throw new DuplicateResourceException("Email already registered: " + request.email());
+        String email = normaliseEmail(request.email());
+        String phone = request.phone().trim();
+
+        if (userRepository.existsByEmail(email)) {
+            throw new DuplicateResourceException("Email already registered: " + email);
         }
-        if (userRepository.existsByPhone(request.phone())) {
-            throw new DuplicateResourceException("Phone already registered: " + request.phone());
+        if (userRepository.existsByPhone(phone)) {
+            throw new DuplicateResourceException("Phone already registered: " + phone);
         }
 
         Role customer = roleRepository.findByName(Role.CUSTOMER)
@@ -32,8 +35,8 @@ public class UserService {
                         "Seed data missing: " + Role.CUSTOMER + " — did V2 run?"));
 
         AppUser user = new AppUser();
-        user.setEmail(request.email());
-        user.setPhone(request.phone());
+        user.setEmail(email);
+        user.setPhone(phone);
         user.setFullName(request.fullName());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setStatus(UserStatus.PENDING);
@@ -41,6 +44,10 @@ public class UserService {
 
         AppUser saved = userRepository.save(user);
         return UserResponse.from(saved);
+    }
+
+    public static String normaliseEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     @Transactional(readOnly = true)
