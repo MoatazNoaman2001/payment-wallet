@@ -1,0 +1,44 @@
+# Runs the whole stack in containers. Running locally with ./mvnw spring-boot:run
+# against a local Postgres still works exactly as before; this is an alternative,
+# not a replacement.
+#
+#   docker compose up --build          start everything
+#   APP_PORT=8081 docker compose up      if 8080 is already taken locally
+#   docker compose up -d db            just Postgres, then run the app from your IDE
+#   docker compose down -v             stop and delete the volume
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: payment_wallet
+      POSTGRES_USER: payment_spring
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-spring-test-123}
+    ports:
+      - "5433:5432"          # 5433 on the host, so a local Postgres on 5432 is untouched
+    volumes:
+      - wallet-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment_spring -d payment_wallet"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy    # Flyway would fail against a database still starting
+    environment:
+      # inside the network the database is reachable by service name, not localhost
+      DB_URL: jdbc:postgresql://db:5432/payment_wallet
+      DB_USERNAME: payment_spring
+      DB_PASSWORD: ${DB_PASSWORD:-spring-test-123}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set, e.g. in .env}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      # APP_PORT lets the container coexist with an app already running on 8080 locally
+      - "${APP_PORT:-8080}:8080"
+
+volumes:
+  wallet-db:

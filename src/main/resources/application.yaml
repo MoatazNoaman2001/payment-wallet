@@ -71,3 +71,28 @@ reliability:
     interval-ms: 5000
   reconciliation:
     interval-ms: 300000
+
+# ---------------------------------------------------------------------------
+# Observability. %X{requestId} reads the MDC value set by CorrelationIdFilter, so
+# every line logged while handling one request carries the same id.
+# ---------------------------------------------------------------------------
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%X{requestId:---------}] %-5level %logger{32} : %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized     # anonymous callers get UP/DOWN and nothing else
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: Payment Wallet
+    description: Double-entry ledger, idempotent transfers, measured concurrency control

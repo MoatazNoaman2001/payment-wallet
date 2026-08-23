@@ -93,6 +93,15 @@ HS256 JWT delivered in an `HttpOnly` cookie, so a cross-site script cannot read 
 an opaque random string stored as a SHA-256 hash, single use, and rotated on every use;
 replaying a spent one revokes every token descended from that login.
 
+**Every log line carries a request id.** A servlet filter puts one in the SLF4J MDC and
+echoes it as `X-Request-Id`, so a single request can be followed through interleaved
+concurrent logs:
+
+```
+08:44:22.076 [20b1a9f3] WARN c.m.p.auth.TokenService :
+    Refresh token reuse detected for user 92eaecb5-... - revoked 1 tokens in family 3c75a2aa-...
+```
+
 **The ledger is checked, not trusted.** A scheduled job recomputes every balance from the
 ledger in a single SQL statement and reports the accounts that disagree. It reports rather
 than repairs: silently fixing a balance would hide the bug that moved it.
@@ -174,6 +183,7 @@ Interactive docs at **http://localhost:8080/swagger-ui.html**
 | `GET` | `/api/transfers/{reference}` | fetch a transfer | either party |
 | `PUT` | `/api/transfers/{reference}/tags` | categorise a transfer | either party |
 | `POST` | `/api/transfers/{reference}/reversal` | compensating REVERSAL transfer | **admin** |
+| `GET` | `/actuator/health` | liveness, including a database check | public |
 | `GET` | `/api/admin/reconciliation` | accounts whose balance disagrees with the ledger | **admin** |
 | `POST` | `/api/admin/outbox/publish` | drain pending outbox events now | **admin** |
 | `GET` | `/api/accounts/{accountNumber}/statement` | paginated, filterable statement | owner |
@@ -245,6 +255,21 @@ all created through the real services so every balance has ledger entries behind
 ./mvnw test
 ```
 
+### Or run it all in Docker
+
+```bash
+docker compose up --build            # app + Postgres 16
+APP_PORT=8081 docker compose up      # if 8080 is already taken locally
+docker compose up -d db              # just the database, run the app from your IDE
+```
+
+The image is a two-stage build: Maven and the JDK live in the build stage only, the
+runtime is a JRE image running as a non-root user, and `HEALTHCHECK` polls
+`/actuator/health`. Compose waits for Postgres to report healthy before starting the app,
+because Flyway would fail against a database still coming up. Postgres is published on
+**5433** so a local instance on 5432 is untouched, and `JWT_SECRET` is required rather
+than defaulted.
+
 > Tests run against the same database and clear transfer/ledger/outbox tables in teardown.
 > Run them before creating demo data, not after.
 
@@ -289,7 +314,8 @@ joins, and the four kinds of JPA projection.
 - [x] Spring Security + JWT, refresh rotation, ownership checks
 - [x] Reversal flow (compensating transfer, never a delete)
 - [x] Reconciliation job and outbox publisher
-- [ ] Testcontainers, Actuator, structured logging
+- [x] Actuator health, correlation-id logging, Docker + Compose
+- [ ] Testcontainers, metrics
 
 Not implemented yet: fees (a third ledger leg into a fee account), persisted `FAILED`
 transfers, and multi-currency FX transfers.
