@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,6 +24,9 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
            order by a.id
            """)
     List<Account> findAllByOwner(UUID ownerPublicId);
+
+    @Query("select a.id from Account a where a.user.id in :ownerIds")
+    List<Long> findIdsByOwnerIds(Collection<Long> ownerIds);
 
     @Query("select a.id from Account a where a.accountNumber = :accountNumber")
     Optional<Long> findIdByAccountNumber(String accountNumber);

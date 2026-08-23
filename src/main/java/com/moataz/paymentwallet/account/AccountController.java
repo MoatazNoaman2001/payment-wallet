@@ -26,11 +26,17 @@ public class AccountController {
     private final CurrentUser currentUser;
 
     @Operation(summary = "Open an account",
-               description = "Opens a zero-balance account in the given currency for the caller.")
+               description = "Opens a zero-balance account in the given currency. ownerPublicId is "
+                           + "optional and defaults to the caller; naming another user requires "
+                           + "ROLE_ADMIN. SYSTEM accounts cannot be opened here.")
     @PostMapping
     public ResponseEntity<AccountResponse> open(@Valid @RequestBody OpenAccountRequest request,
                                                 UriComponentsBuilder uriBuilder) {
-        AccountResponse created = accountService.open(request, currentUser.publicId());
+        UUID owner = request.ownerPublicId() == null ? currentUser.publicId() : request.ownerPublicId();
+        if (!owner.equals(currentUser.publicId()) && !currentUser.isAdmin()) {
+            throw new AccessDeniedException("Only an administrator may open an account for another user");
+        }
+        AccountResponse created = accountService.open(request, owner);
         URI location = uriBuilder.path("/api/accounts/{number}")
                                  .buildAndExpand(created.accountNumber())
                                  .toUri();

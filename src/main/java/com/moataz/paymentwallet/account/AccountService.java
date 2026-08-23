@@ -31,6 +31,11 @@ public class AccountService {
         AppUser owner = userRepository.findByPublicId(ownerPublicId)
                 .orElseThrow(() -> new NotFoundException("No user with id " + ownerPublicId));
 
+        if (request.type() == AccountType.SYSTEM) {
+            throw new BusinessRuleException(
+                    "SYSTEM settlement accounts cannot be opened through the API: they may hold a "
+                    + "negative balance, so they are created by migration alongside a currency");
+        }
         if (owner.getStatus() == UserStatus.SUSPENDED || owner.getStatus() == UserStatus.CLOSED) {
             throw new BusinessRuleException("Cannot open an account for a " + owner.getStatus() + " user");
         }

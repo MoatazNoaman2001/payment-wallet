@@ -152,16 +152,25 @@ Registration only ever grants `ROLE_CUSTOMER`, so `V5` seeds an administrator
 | `POST /api/users`, `/api/auth/login` | public | public |
 | `GET /api/users/{publicId}` | self only | anyone |
 | `POST /api/users/{id}/activation` | ✗ | ✓ — a KYC decision |
+| `POST /api/accounts` | own, and never `SYSTEM` | may name another `ownerPublicId` |
 | `GET /api/accounts/{n}`, `/statement`, `/spend-by-tag` | owner | any |
 | `POST /…/deposits`, `/withdrawals` | own account | any |
 | `POST /api/transfers` | must own the **source** | any |
 | `GET`/`PUT` on a transfer | either party to it | any |
 | `POST /api/transfers/{ref}/reversal` | ✗ | ✓ |
 | `/api/admin/**` | ✗ | ✓ |
-| `SYSTEM` settlement accounts | ✗ never | read-only |
+| `SYSTEM` settlement accounts | ✗ never | read-only, and not creatable via the API |
 
 Transfers are gated on the **source**: you must own the account money leaves. Anyone may
 receive.
+
+`SYSTEM` accounts cannot be opened through the API by anyone, administrators included.
+They are exempt from the insufficient-funds check and permitted to hold a negative balance
+— that is correct for a settlement account and catastrophic for one an ordinary user can
+create. An earlier version of this module accepted `type: SYSTEM` from any authenticated
+caller, which let a customer open one and transfer an unbounded amount out of it. Settlement
+accounts are created by migration alongside a currency; `Phase4SecurityTest` asserts the API
+refuses.
 
 ---
 

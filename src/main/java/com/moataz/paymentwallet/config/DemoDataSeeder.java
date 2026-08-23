@@ -82,7 +82,7 @@ public class DemoDataSeeder implements ApplicationRunner {
 
     private String openWallet(UUID owner) {
         return accountService.open(
-                new OpenAccountRequest("EGP", AccountType.WALLET, new BigDecimal("10000.0000")),
+                new OpenAccountRequest(owner, "EGP", AccountType.WALLET, new BigDecimal("10000.0000")),
                 owner).accountNumber();
     }
 

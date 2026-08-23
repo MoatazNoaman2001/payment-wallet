@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Stream;
 import java.util.Set;
 
 /**
@@ -39,7 +40,12 @@ class TestDataCleaner {
     private final AppUserRepository userRepository;
 
     @Transactional
-    void deleteCreated(List<Long> accountIds, List<Long> userIds) {
+    void deleteCreated(List<Long> trackedAccountIds, List<Long> userIds) {
+        Set<Long> owned = userIds.isEmpty()
+                ? Set.of() : new HashSet<>(accountRepository.findIdsByOwnerIds(userIds));
+        List<Long> accountIds = Stream.concat(trackedAccountIds.stream(), owned.stream())
+                .distinct().toList();
+
         if (!accountIds.isEmpty()) {
             List<Transfer> mine =
                     transferRepository.findBySourceAccountIdInOrDestAccountIdIn(accountIds, accountIds);

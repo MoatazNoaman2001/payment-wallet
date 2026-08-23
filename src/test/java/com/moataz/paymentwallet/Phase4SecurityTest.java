@@ -51,6 +51,7 @@ class Phase4SecurityTest {
     private Account aliceWallet;
     private String aliceToken;
     private String malloryToken;
+    private String adminToken;
 
     @BeforeEach
     void setUp() {
@@ -60,6 +61,8 @@ class Phase4SecurityTest {
         newAccount(mallory, BigDecimal.ZERO);
         aliceToken = tokenService.issueAccessToken(alice);
         malloryToken = tokenService.issueAccessToken(mallory);
+        adminToken = tokenService.issueAccessToken(
+                userRepository.findByEmailWithRoles("admin@paymentwallet.local").orElseThrow());
     }
 
     @AfterEach
@@ -175,6 +178,44 @@ class Phase4SecurityTest {
 
         assertThat(accountRepository.findById(aliceWallet.getId()).orElseThrow().getBalance())
                 .isEqualByComparingTo("500.0000");
+    }
+
+    @Test
+    @DisplayName("a customer cannot open a SYSTEM account, which could hold a negative balance")
+    void cannotOpenSettlementAccount() throws Exception {
+        mockMvc.perform(post("/api/accounts")
+                        .header("Authorization", "Bearer " + aliceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currencyCode\": \"EGP\", \"type\": \"SYSTEM\"}"))
+               .andExpect(status().isUnprocessableEntity())
+               .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("SYSTEM")));
+
+        mockMvc.perform(post("/api/accounts")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currencyCode\": \"EGP\", \"type\": \"SYSTEM\"}"))
+               .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    @DisplayName("only an administrator may open an account for someone else")
+    void openingForAnotherUserIsAdminOnly() throws Exception {
+        String forMallory = """
+                {"ownerPublicId": "%s", "currencyCode": "EGP", "type": "WALLET"}
+                """.formatted(mallory.getPublicId());
+
+        mockMvc.perform(post("/api/accounts")
+                        .header("Authorization", "Bearer " + aliceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(forMallory))
+               .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/accounts")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(forMallory))
+               .andExpect(status().isCreated())
+               .andExpect(jsonPath("$.ownerPublicId").value(mallory.getPublicId().toString()));
     }
 
     @Test
