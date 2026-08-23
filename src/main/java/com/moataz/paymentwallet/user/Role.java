@@ -13,6 +13,7 @@ import java.util.Objects;
 public class Role {
     public static final String CUSTOMER = "ROLE_CUSTOMER";
     public static final String MERCHANT = "ROLE_MERCHANT";
+    public static final String TELLER   = "ROLE_TELLER";
     public static final String ADMIN    = "ROLE_ADMIN";
 
     @Id

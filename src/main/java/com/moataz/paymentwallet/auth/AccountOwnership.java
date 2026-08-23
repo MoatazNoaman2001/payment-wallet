@@ -34,6 +34,16 @@ public class AccountOwnership {
         return isAdmin(authentication) || publicId != null && publicId.equals(callerPublicId(authentication));
     }
 
+    public boolean canServiceAccount(String accountNumber, Authentication authentication) {
+        return isStaff(authentication) || ownsAccount(accountNumber, authentication);
+    }
+
+    public boolean isStaff(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority())
+                            || "ROLE_TELLER".equals(a.getAuthority()));
+    }
+
     public boolean isAdmin(Authentication authentication) {
         return authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));

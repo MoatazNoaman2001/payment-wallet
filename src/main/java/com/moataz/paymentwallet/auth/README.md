@@ -144,22 +144,39 @@ chain is stateless.
 
 ## 4. Who may do what
 
-Registration only ever grants `ROLE_CUSTOMER`, so `V5` seeds an administrator
-(`admin@paymentwallet.local` / `admin12345`, demo only).
+Registration only ever grants `ROLE_CUSTOMER`, so staff are seeded: `V5` an administrator
+(`admin@paymentwallet.local` / `admin12345`) and `V7` a teller
+(`teller@paymentwallet.local` / `teller12345`). Demo credentials only.
 
-| Endpoint | CUSTOMER / MERCHANT | ADMIN |
-|---|---|---|
-| `POST /api/users`, `/api/auth/login` | public | public |
-| `GET /api/users/{publicId}` | self only | anyone |
-| `POST /api/users/{id}/activation` | ✗ | ✓ — a KYC decision |
-| `POST /api/accounts` | own, and never `SYSTEM` | may name another `ownerPublicId` |
-| `GET /api/accounts/{n}`, `/statement`, `/spend-by-tag` | owner | any |
-| `POST /…/deposits`, `/withdrawals` | own account | any |
-| `POST /api/transfers` | must own the **source** | any |
-| `GET`/`PUT` on a transfer | either party to it | any |
-| `POST /api/transfers/{ref}/reversal` | ✗ | ✓ |
-| `/api/admin/**` | ✗ | ✓ |
-| `SYSTEM` settlement accounts | ✗ never | read-only, and not creatable via the API |
+| Endpoint | CUSTOMER / MERCHANT | TELLER | ADMIN |
+|---|---|---|---|
+| `POST /api/users`, `/api/auth/login` | public | public | public |
+| `GET /api/users/{publicId}` | self only | self only | anyone |
+| `POST /api/users/{id}/activation` | ✗ | ✗ | ✓ — a KYC decision |
+| `POST /api/accounts` for self | ✓ | ✓ | ✓ |
+| `POST /api/accounts` for another user | ✗ | ✓ | ✓ |
+| `GET /api/accounts` (no owner given) | own accounts | **every** account | **every** account |
+| `GET /api/accounts/{n}`, `/statement`, `/spend-by-tag` | owner | any | any |
+| `POST /…/deposits`, `/withdrawals` | own account | any — counter cash | any |
+| `POST /api/transfers` | must own the **source** | ✗ | any |
+| `GET`/`PUT` on a transfer | either party to it | — | any |
+| `POST /api/transfers/{ref}/reversal` | ✗ | ✗ — back office | ✓ |
+| `/api/admin/**` | ✗ | ✗ | ✓ |
+| `SYSTEM` settlement accounts | ✗ never | ✗ never | read-only, not creatable via the API |
+
+Two lines there are deliberate. **A teller cannot transfer out of a customer's account**:
+taking cash in and paying it out at a counter is a teller operation, but instructing a
+payment to a third party is the customer's own act. And **a teller cannot reverse**,
+because the person who made the mistake should not be the one who erases it.
+
+A teller opening an account for a customer is recorded in `account.opened_by`, separately
+from `user_id`, so the audit trail answers *which employee did this* as well as *whose
+account it is*. `transfer.initiated_by` already worked this way.
+
+In a real bank this would go further: system administrators would not hold business
+powers at all (segregation of duties), and account opening would be maker–checker — one
+employee creates, a second approves. Here `ROLE_ADMIN` keeps the teller powers as a
+superset so a demo needs one login rather than three.
 
 Transfers are gated on the **source**: you must own the account money leaves. Anyone may
 receive.

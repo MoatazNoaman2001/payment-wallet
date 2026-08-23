@@ -32,6 +32,10 @@ public class Account {
     @JoinColumn(name = "currency_code", updatable = false)
     private Currency currency;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "opened_by", updatable = false)
+    private AppUser openedBy;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private AccountType type;

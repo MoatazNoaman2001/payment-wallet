@@ -2,6 +2,8 @@ package com.moataz.paymentwallet.account;
 
 import com.moataz.paymentwallet.reliability.BalanceDriftView;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -24,6 +26,23 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
            order by a.id
            """)
     List<Account> findAllByOwner(UUID ownerPublicId);
+
+    @Query(value = """
+           select a from Account a
+             join fetch a.user
+             join fetch a.currency
+           where a.user.publicId = :ownerPublicId
+           """,
+           countQuery = "select count(a) from Account a where a.user.publicId = :ownerPublicId")
+    Page<Account> findPageByOwner(UUID ownerPublicId, Pageable pageable);
+
+    @Query(value = """
+           select a from Account a
+             join fetch a.user
+             join fetch a.currency
+           """,
+           countQuery = "select count(a) from Account a")
+    Page<Account> findPageWithOwner(Pageable pageable);
 
     @Query("select a.id from Account a where a.user.id in :ownerIds")
     List<Long> findIdsByOwnerIds(Collection<Long> ownerIds);

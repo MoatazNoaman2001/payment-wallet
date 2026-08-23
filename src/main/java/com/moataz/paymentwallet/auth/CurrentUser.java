@@ -18,6 +18,16 @@ public class CurrentUser {
         return UUID.fromString(jwt.getSubject());
     }
 
+    public boolean isStaff() {
+        return hasRole("ROLE_ADMIN") || hasRole("ROLE_TELLER");
+    }
+
+    private boolean hasRole(String role) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> role.equals(a.getAuthority()));
+    }
+
     public boolean isAdmin() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null && auth.getAuthorities().stream()

@@ -9,6 +9,8 @@ import com.moataz.paymentwallet.user.AppUserRepository;
 import com.moataz.paymentwallet.user.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +29,7 @@ public class AccountService {
     private final CurrencyRepository currencyRepository;
 
     @Transactional
-    public AccountResponse open(OpenAccountRequest request, UUID ownerPublicId) {
+    public AccountResponse open(OpenAccountRequest request, UUID ownerPublicId, UUID actorPublicId) {
         AppUser owner = userRepository.findByPublicId(ownerPublicId)
                 .orElseThrow(() -> new NotFoundException("No user with id " + ownerPublicId));
 
@@ -47,6 +49,9 @@ public class AccountService {
         Account account = new Account();
         account.setAccountNumber(generateAccountNumber());
         account.setUser(owner);
+        account.setOpenedBy(actorPublicId.equals(ownerPublicId)
+                ? owner
+                : userRepository.findByPublicId(actorPublicId).orElse(owner));
         account.setCurrency(currency);
         account.setType(request.type());
         account.setStatus(AccountStatus.ACTIVE);
@@ -61,6 +66,17 @@ public class AccountService {
         Account account = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new NotFoundException("No account " + accountNumber));
         return AccountResponse.from(account);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AccountResponse> list(UUID ownerPublicId, Pageable pageable) {
+        if (ownerPublicId == null) {
+            return accountRepository.findPageWithOwner(pageable).map(AccountResponse::from);
+        }
+        if (userRepository.findByPublicId(ownerPublicId).isEmpty()) {
+            throw new NotFoundException("No user with id " + ownerPublicId);
+        }
+        return accountRepository.findPageByOwner(ownerPublicId, pageable).map(AccountResponse::from);
     }
 
     @Transactional(readOnly = true)

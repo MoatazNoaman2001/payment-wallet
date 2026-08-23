@@ -83,7 +83,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     private String openWallet(UUID owner) {
         return accountService.open(
                 new OpenAccountRequest(owner, "EGP", AccountType.WALLET, new BigDecimal("10000.0000")),
-                owner).accountNumber();
+                owner, owner).accountNumber();
     }
 
     private void pay(UUID actor, String from, String to, String amount, String description, String tag) {

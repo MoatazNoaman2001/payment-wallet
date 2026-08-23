@@ -186,9 +186,9 @@ There is also a small server-rendered UI (Thymeleaf): sign in, account list, and
 | `POST` | `/api/users` | register a user (PENDING, ROLE_CUSTOMER) | public |
 | `GET` | `/api/users/{publicId}` | fetch a user | self or admin |
 | `POST` | `/api/users/{publicId}/activation` | activate after KYC | **admin** |
-| `POST` | `/api/accounts` | open an account for the caller | authenticated |
+| `POST` | `/api/accounts` | open an account; `ownerPublicId` for another user needs staff | authenticated |
 | `GET` | `/api/accounts/{accountNumber}` | fetch an account | owner |
-| `GET` | `/api/accounts` | the caller's accounts | authenticated |
+| `GET` | `/api/accounts` | paginated; staff see every account, or one customer's via `ownerPublicId` | authenticated |
 | `POST` | `/api/accounts/{accountNumber}/deposits` | settlement → wallet (`TOPUP`) | owner |
 | `POST` | `/api/accounts/{accountNumber}/withdrawals` | wallet → settlement (`WITHDRAWAL`) | owner |
 | `POST` | `/api/transfers` | wallet → wallet (`P2P`), needs `Idempotency-Key` | owner of **source** |
@@ -243,7 +243,7 @@ instead of silently connecting somewhere unintended. In CI or a container, set `
 ./mvnw spring-boot:run
 ```
 
-Flyway applies `V1..V6` on startup: schema, reference data (EGP/USD/EUR, roles, tags), and
+Flyway applies `V1..V7` on startup: schema, reference data (EGP/USD/EUR, roles, tags), and
 the SYSTEM settlement accounts. Then open Swagger and:
 
 1. `POST /api/users` — register
@@ -253,7 +253,8 @@ the SYSTEM settlement accounts. Then open Swagger and:
 5. `POST /api/transfers` — send money to a second wallet
 6. `GET /api/accounts/{number}/statement` — see both legs
 
-A demo administrator is seeded by `V5`: `admin@paymentwallet.local` / `admin12345`.
+Staff logins are seeded: `admin@paymentwallet.local` / `admin12345` (`V5`) and
+`teller@paymentwallet.local` / `teller12345` (`V7`).
 Demo credentials only — change or remove them before deploying anything.
 
 For a populated demo — two customers, funded wallets, tagged transfers and a withdrawal,

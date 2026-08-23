@@ -30,7 +30,7 @@ public class StatementController {
     @Operation(summary = "Account statement",
                description = "Paginated ledger lines with optional filters. Runs a fixed "
                            + "number of queries regardless of page size.")
-    @PreAuthorize("@ownership.ownsAccount(#accountNumber, authentication)")
+    @PreAuthorize("@ownership.canServiceAccount(#accountNumber, authentication)")
     @GetMapping("/statement")
     public Page<StatementLine> statement(
             @PathVariable String accountNumber,
@@ -47,7 +47,7 @@ public class StatementController {
 
     @Operation(summary = "Spend by tag for one month",
                description = "Group-by aggregate over outgoing POSTED transfers, e.g. month=2026-08")
-    @PreAuthorize("@ownership.ownsAccount(#accountNumber, authentication)")
+    @PreAuthorize("@ownership.canServiceAccount(#accountNumber, authentication)")
     @GetMapping("/spend-by-tag")
     public List<TagSpendRow> spendByTag(
             @PathVariable String accountNumber,

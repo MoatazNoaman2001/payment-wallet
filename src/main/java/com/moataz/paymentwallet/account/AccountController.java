@@ -9,6 +9,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -33,33 +36,36 @@ public class AccountController {
     public ResponseEntity<AccountResponse> open(@Valid @RequestBody OpenAccountRequest request,
                                                 UriComponentsBuilder uriBuilder) {
         UUID owner = request.ownerPublicId() == null ? currentUser.publicId() : request.ownerPublicId();
-        if (!owner.equals(currentUser.publicId()) && !currentUser.isAdmin()) {
-            throw new AccessDeniedException("Only an administrator may open an account for another user");
+        if (!owner.equals(currentUser.publicId()) && !currentUser.isStaff()) {
+            throw new AccessDeniedException("Only a teller or administrator may open an account for another user");
         }
-        AccountResponse created = accountService.open(request, owner);
+        AccountResponse created = accountService.open(request, owner, currentUser.publicId());
         URI location = uriBuilder.path("/api/accounts/{number}")
                                  .buildAndExpand(created.accountNumber())
                                  .toUri();
         return ResponseEntity.created(location).body(created);
     }
 
-    @PreAuthorize("@ownership.ownsAccount(#accountNumber, authentication)")
+    @PreAuthorize("@ownership.canServiceAccount(#accountNumber, authentication)")
     @GetMapping("/{accountNumber}")
     public AccountResponse getOne(@PathVariable String accountNumber) {
         return accountService.findByNumber(accountNumber);
     }
 
     @Operation(summary = "List accounts",
-               description = "The caller's own accounts. Administrators may pass ownerPublicId "
-                           + "to list someone else's.")
+               description = "Paginated. A customer always sees their own accounts. Staff may pass "
+                           + "ownerPublicId to scope to one customer, or omit it to list every account.")
     @GetMapping
-    public List<AccountResponse> list(@RequestParam(required = false) UUID ownerPublicId) {
-        if (ownerPublicId == null || ownerPublicId.equals(currentUser.publicId())) {
-            return accountService.findAllForOwner(currentUser.publicId());
+    public Page<AccountResponse> list(
+            @RequestParam(required = false) UUID ownerPublicId,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+
+        if (currentUser.isStaff()) {
+            return accountService.list(ownerPublicId, pageable);
         }
-        if (!currentUser.isAdmin()) {
+        if (ownerPublicId != null && !ownerPublicId.equals(currentUser.publicId())) {
             throw new AccessDeniedException("Not your accounts");
         }
-        return accountService.findAllForOwner(ownerPublicId);
+        return accountService.list(currentUser.publicId(), pageable);
     }
 }

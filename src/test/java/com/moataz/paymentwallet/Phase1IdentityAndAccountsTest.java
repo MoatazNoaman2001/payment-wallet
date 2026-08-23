@@ -111,8 +111,8 @@ class Phase1IdentityAndAccountsTest {
 
         mockMvc.perform(get("/api/accounts").with(asUser(publicId)))
                .andExpect(status().isOk())
-               .andExpect(jsonPath("$.length()").value(1))
-               .andExpect(jsonPath("$[0].accountNumber").value(accountNumber));
+               .andExpect(jsonPath("$.content.length()").value(1))
+               .andExpect(jsonPath("$.content[0].accountNumber").value(accountNumber));
     }
 
     @Test
