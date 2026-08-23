@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Customers · Payment Wallet</title>
+    <link rel="stylesheet" th:href="@{/css/wallet.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: topbar('users')}"></div>
+
+<div class="wrap">
+    <h1 class="page-title">Customers</h1>
+    <p class="page-sub" th:text="${page.totalElements} + ' registered'">0 registered</p>
+
+    <div class="table-wrap">
+        <div class="table-card">
+            <table>
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th class="col-right">Accounts</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="u : ${page.content}">
+                    <td><a th:href="@{/users/{id}(id=${u.publicId})}" th:text="${u.fullName}">Mona Ali</a></td>
+                    <td class="muted" th:text="${u.email}">mona@demo.local</td>
+                    <td class="mono muted" th:text="${u.phone}">+20100000000</td>
+                    <td>
+                        <span class="badge"
+                              th:classappend="${u.status.name() == 'ACTIVE'} ? 'active' : (${u.status.name() == 'PENDING'} ? '' : 'frozen')"
+                              th:text="${u.status}">PENDING</span>
+                    </td>
+                    <td class="col-right" th:text="${u.accountCount}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="pagination" th:if="${page.totalPages > 1}">
+        <span th:text="'Page ' + (${page.number} + 1) + ' of ' + ${page.totalPages}">Page 1 of 1</span>
+        <span class="pages">
+            <a class="btn btn-outline btn-sm" th:classappend="${page.first} ? 'disabled'"
+               th:href="@{/users(page=${page.number - 1}, size=${page.size})}">Previous</a>
+            <a class="btn btn-outline btn-sm" th:classappend="${page.last} ? 'disabled'"
+               th:href="@{/users(page=${page.number + 1}, size=${page.size})}">Next</a>
+        </span>
+    </div>
+</div>
+
+</body>
+</html>

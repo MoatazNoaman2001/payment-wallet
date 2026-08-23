@@ -346,3 +346,10 @@ a.acct-line:hover { background: #fafafa; text-decoration: none; }
     .acct-balance { margin-left: auto; }
     .owner-count { display: none; }
 }
+
+.field-error { color: var(--destructive); font-size: 12.5px; margin: 6px 0 0; }
+input.error, .field-error + input { border-color: var(--destructive-border); }
+.owner-accounts.boxed {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--card); box-shadow: var(--shadow-sm);
+}

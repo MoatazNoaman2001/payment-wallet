@@ -7,6 +7,8 @@
         <a class="brand" th:href="@{/accounts}">payment<span>wallet</span></a>
         <nav class="nav">
             <a th:href="@{/accounts}" th:classappend="${active == 'accounts'} ? 'on'">Accounts</a>
+            <a sec:authorize="hasAnyRole('ADMIN','TELLER')" th:href="@{/users}"
+               th:classappend="${active == 'users'} ? 'on'">Customers</a>
             <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin}"
                th:classappend="${active == 'admin'} ? 'on'">Admin</a>
             <a th:href="@{/swagger-ui.html}" target="_blank">API</a>

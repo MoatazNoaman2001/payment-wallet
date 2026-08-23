@@ -178,6 +178,10 @@ statement, and an operations page. It is responsive and shares the API's authori
 | Method | Path | Purpose | Access |
 |---|---|---|---|
 | `GET`/`POST` | `/login` | sign-in page and form | public |
+| `GET`/`POST` | `/register` | self-service sign-up with inline validation | public |
+| `GET` | `/users` (HTML) | customer list with status and account counts | staff |
+| `GET` | `/users/{publicId}` (HTML) | profile, roles, accounts, open-account form | self or staff |
+| `POST` | `/users/{publicId}/activate` | complete KYC activation | **admin** |
 | `GET` | `/accounts` (HTML) | own accounts, or every account for staff | authenticated |
 | `GET` | `/accounts/{n}/statement` (HTML) | paginated, filterable statement | owner or staff |
 | `GET` | `/admin` (HTML) | reconciliation status and outbox backlog | **admin** |
@@ -338,6 +342,7 @@ joins, and the four kinds of JPA projection.
 - [x] Thymeleaf pages: login, accounts
 - [x] Thymeleaf page: statement with filters and pagination
 - [x] Thymeleaf: navigation, staff account list, operations page, responsive layout
+- [x] Thymeleaf: registration, customer list, profile with activation and account opening
 - [ ] Thymeleaf page: transfer form
 - [ ] Testcontainers, metrics
 

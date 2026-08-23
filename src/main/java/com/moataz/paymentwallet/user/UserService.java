@@ -51,6 +51,12 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<com.moataz.paymentwallet.user.dto.UserRow> list(
+            org.springframework.data.domain.Pageable pageable) {
+        return userRepository.findUserRows(pageable);
+    }
+
+    @Transactional(readOnly = true)
     public UserResponse findByPublicId(UUID publicId) {
         AppUser user = userRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new NotFoundException("No user with id " + publicId));

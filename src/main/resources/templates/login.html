@@ -31,7 +31,12 @@
         <div class="alert alert-error" th:if="${error}" th:text="${error}">Email or password is incorrect</div>
         <div class="alert alert-ok" th:if="${param.loggedOut}">You have been signed out.</div>
 
+        <div class="alert alert-ok" th:if="${param.registered}">
+            Account created. An administrator must activate it before you can transact.
+        </div>
+
         <p class="hint">
+            New here? <a th:href="@{/register}">Create an account</a><br>
             <code>mona@demo.local</code> · <code>demo-pass-12345</code><br>
             <code>admin@paymentwallet.local</code> · <code>admin12345</code>
         </p>

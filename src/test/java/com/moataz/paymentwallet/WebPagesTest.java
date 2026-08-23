@@ -133,6 +133,53 @@ class WebPagesTest {
     }
 
     @Test
+    @DisplayName("the registration form is public and reports field errors inline")
+    void registrationForm() throws Exception {
+        mockMvc.perform(get("/register").accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("Create an account")));
+
+        mockMvc.perform(post("/register")
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("fullName", "").param("email", "nope")
+                        .param("phone", "abc").param("password", "short"))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("field-error")))
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("well-formed email")));
+    }
+
+    @Test
+    @DisplayName("the customers list is staff only, and activation is admin only")
+    void customerAdministrationIsRestricted() throws Exception {
+        mockMvc.perform(get("/users").with(asUser(alice)).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/users").with(asAdmin()).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("registered")));
+
+        mockMvc.perform(post("/users/{id}/activate", alice.getPublicId())
+                        .with(asUser(alice))
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf()))
+               .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("a customer may open their own profile but not someone else's")
+    void profileVisibility() throws Exception {
+        mockMvc.perform(get("/users/{id}", alice.getPublicId())
+                        .with(asUser(alice)).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString(aliceWallet.getAccountNumber())));
+
+        mockMvc.perform(get("/users/{id}", alice.getPublicId())
+                        .with(asUser(mallory)).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isForbidden());
+    }
+
+    @Test
     @DisplayName("the admin operations page is admin only")
     void adminPageIsAdminOnly() throws Exception {
         mockMvc.perform(get("/admin").with(asUser(alice)).accept(org.springframework.http.MediaType.TEXT_HTML))

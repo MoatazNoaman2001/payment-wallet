@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Create account · Payment Wallet</title>
+    <link rel="stylesheet" th:href="@{/css/wallet.css}">
+</head>
+<body>
+
+<div class="login-page">
+    <div class="login-card">
+        <div class="brand" style="margin-bottom:20px">payment<span>wallet</span></div>
+
+        <h1 class="login-title">Create an account</h1>
+        <p class="login-sub">You start as PENDING until an administrator activates you.</p>
+
+        <form th:action="@{/register}" th:object="${form}" method="post" novalidate>
+            <div class="field">
+                <label for="fullName">Full name</label>
+                <input type="text" id="fullName" th:field="*{fullName}" placeholder="Mona Ali">
+                <p class="field-error" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}">error</p>
+            </div>
+            <div class="field">
+                <label for="email">Email</label>
+                <input type="text" id="email" th:field="*{email}" placeholder="mona@example.com">
+                <p class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">error</p>
+            </div>
+            <div class="field">
+                <label for="phone">Phone</label>
+                <input type="text" id="phone" th:field="*{phone}" placeholder="+201234567890">
+                <p class="field-error" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}">error</p>
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input type="password" id="password" th:field="*{password}" placeholder="at least 8 characters">
+                <p class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">error</p>
+            </div>
+            <button type="submit" class="btn btn-block">Create account</button>
+        </form>
+
+        <p class="hint">Already registered? <a th:href="@{/login}">Sign in</a></p>
+    </div>
+</div>
+
+</body>
+</html>
