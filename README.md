@@ -21,7 +21,7 @@ The transfer engine is verified under real concurrency, not just happy-path test
 Exactly 50 succeed. Final balance is exactly 0. No oversell, no lost update, and the
 ledger reconciles to the balance afterwards. Both locking strategies are implemented so
 the trade-off can be measured rather than argued about — see
-[`LockingStrategyComparisonTest`](src/test/java/com/luv2code/paymentwallet/LockingStrategyComparisonTest.java).
+[`LockingStrategyComparisonTest`](src/test/java/com/moataz/paymentwallet/LockingStrategyComparisonTest.java).
 
 ---
 
@@ -92,6 +92,15 @@ HS256 JWT delivered in an `HttpOnly` cookie, so a cross-site script cannot read 
 `Authorization: Bearer` accepted as a fallback for Swagger and curl. The refresh token is
 an opaque random string stored as a SHA-256 hash, single use, and rotated on every use;
 replaying a spent one revokes every token descended from that login.
+
+**The ledger is checked, not trusted.** A scheduled job recomputes every balance from the
+ledger in a single SQL statement and reports the accounts that disagree. It reports rather
+than repairs: silently fixing a balance would hide the bug that moved it.
+
+**The outbox is drained with `SKIP LOCKED`.** The publisher claims a batch with
+`select ... for update skip locked`, so several instances take disjoint batches instead of
+blocking each other — the standard queue-in-a-database pattern. Delivery is at-least-once,
+so consumers deduplicate on the transfer reference.
 
 **Mistakes are corrected forward, never erased.** Reversing a transfer writes a new
 `REVERSAL` in the opposite direction with its own ledger legs and marks the original
@@ -165,6 +174,8 @@ Interactive docs at **http://localhost:8080/swagger-ui.html**
 | `GET` | `/api/transfers/{reference}` | fetch a transfer | either party |
 | `PUT` | `/api/transfers/{reference}/tags` | categorise a transfer | either party |
 | `POST` | `/api/transfers/{reference}/reversal` | compensating REVERSAL transfer | **admin** |
+| `GET` | `/api/admin/reconciliation` | accounts whose balance disagrees with the ledger | **admin** |
+| `POST` | `/api/admin/outbox/publish` | drain pending outbox events now | **admin** |
 | `GET` | `/api/accounts/{accountNumber}/statement` | paginated, filterable statement | owner |
 | `GET` | `/api/accounts/{accountNumber}/spend-by-tag` | monthly spend aggregate | owner |
 
@@ -248,6 +259,7 @@ all created through the real services so every balance has ledger entries behind
 | `CashOperationsTest` | deposits and withdrawals against settlement |
 | `Phase3StatementTest` | pagination, composed filters, fixed query count, group-by projection |
 | `LockingStrategyComparisonTest` | pessimistic vs optimistic, side by side |
+| `Phase5ReliabilityTest` | drift detection, publish-once semantics, batch draining |
 | `Phase5ReversalTest` | compensating reversal, idempotency, state machine, refusal when funds are spent |
 | `Phase4SecurityTest` | 401 anonymous, 403 on someone else's account, refused transfer leaves balances untouched, refresh reuse detection |
 
@@ -255,12 +267,12 @@ all created through the real services so every balance has ledger entries behind
 
 ## Deeper reading
 
-[`transfer/README.md`](src/main/java/com/luv2code/paymentwallet/transfer/README.md) walks
+[`transfer/README.md`](src/main/java/com/moataz/paymentwallet/transfer/README.md) walks
 through the transfer module in detail: why the ledger exists, what each of the five steps
 in `execute()` defends against, and a full comparison of the two locking strategies with
 measured numbers.
 
-[`statement/README.md`](src/main/java/com/luv2code/paymentwallet/statement/README.md)
+[`statement/README.md`](src/main/java/com/moataz/paymentwallet/statement/README.md)
 covers the query side: pagination and its scaling limits, Specifications for dynamic
 filtering, `@EntityGraph` versus `join fetch` and why collections break paginated fetch
 joins, and the four kinds of JPA projection.
@@ -276,7 +288,7 @@ joins, and the four kinds of JPA projection.
 - [x] Paginated statements, filtering, aggregate spend by tag
 - [x] Spring Security + JWT, refresh rotation, ownership checks
 - [x] Reversal flow (compensating transfer, never a delete)
-- [ ] Reconciliation job, outbox publisher
+- [x] Reconciliation job and outbox publisher
 - [ ] Testcontainers, Actuator, structured logging
 
 Not implemented yet: fees (a third ledger leg into a fee account), persisted `FAILED`

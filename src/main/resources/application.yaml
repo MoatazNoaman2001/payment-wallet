@@ -58,3 +58,16 @@ security:
     refresh-token-days: 14
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+# ---------------------------------------------------------------------------
+# Background jobs. The outbox publisher forwards events the transfer wrote in the
+# same transaction as the money; reconciliation recomputes balances from the ledger
+# and reports drift rather than silently repairing it.
+# ---------------------------------------------------------------------------
+reliability:
+  scheduling:
+    enabled: true
+  outbox:
+    interval-ms: 5000
+  reconciliation:
+    interval-ms: 300000
