@@ -259,8 +259,15 @@ the SYSTEM settlement accounts. Then open Swagger and:
 5. `POST /api/transfers` — send money to a second wallet
 6. `GET /api/accounts/{number}/statement` — see both legs
 
-Staff logins are seeded: `admin@paymentwallet.local` / `admin12345` (`V5`) and
-`teller@paymentwallet.local` / `teller12345` (`V7`).
+Staff logins and settlement accounts are **asserted at every startup**, not just seeded
+once by a migration: if the admin, the teller, a role or a `SYSTEM` account is missing, the
+application recreates it and logs a warning. A migration runs once, so anything it seeds is
+gone for good if the row is later deleted — and a wallet with no settlement account cannot
+take deposits.
+
+Defaults: `admin@paymentwallet.local` / `admin12345` and
+`teller@paymentwallet.local` / `teller12345`, overridable with `staff.admin.password` and
+`staff.teller.password`.
 Demo credentials only — change or remove them before deploying anything.
 
 For a populated demo — two customers, funded wallets, tagged transfers and a withdrawal,
