@@ -148,6 +148,10 @@ Registration only ever grants `ROLE_CUSTOMER`, so staff are seeded: `V5` an admi
 (`admin@paymentwallet.local` / `admin12345`) and `V7` a teller
 (`teller@paymentwallet.local` / `teller12345`). Demo credentials only.
 
+Roles come in three tiers: **customer-facing** (`CUSTOMER`, `MERCHANT`), **operational
+staff** who may move money (`TELLER`, `SUPERVISOR`, `ADMIN`), and **read-only staff**
+(`AUDITOR`, `COMPLIANCE`, `OPS`) who may see any account but change nothing at the counter.
+
 | Endpoint | CUSTOMER / MERCHANT | TELLER | ADMIN |
 |---|---|---|---|
 | `POST /api/users`, `/api/auth/login` | public | public | public |
@@ -157,14 +161,30 @@ Registration only ever grants `ROLE_CUSTOMER`, so staff are seeded: `V5` an admi
 | `POST /api/accounts` for another user | ✗ | ✓ | ✓ |
 | `GET /api/accounts` (no owner given) | own accounts | **every** account | **every** account |
 | `GET /api/accounts/{n}`, `/statement`, `/spend-by-tag` | owner | any | any |
-| `POST /…/deposits`, `/withdrawals` | own account | any — counter cash | any |
+| `POST /…/deposits`, `/withdrawals` | ✗ | any **but their own**, up to the counter limit | any |
 | `POST /api/transfers` | must own the **source** | ✗ | any |
 | `GET`/`PUT` on a transfer | either party to it | — | any |
 | `POST /api/transfers/{ref}/reversal` | ✗ | ✗ — back office | ✓ |
 | `/api/admin/**` | ✗ | ✗ | ✓ |
 | `SYSTEM` settlement accounts | ✗ never | ✗ never | read-only, not creatable via the API |
 
-Two lines there are deliberate. **A teller cannot transfer out of a customer's account**:
+Three rules carry most of the weight.
+
+**A customer cannot deposit into their own account.** In a real wallet a deposit is
+triggered by something outside the system — cash at a counter, a card charge, an incoming
+bank transfer — never by the customer asserting it. Allowing self-deposit is a licence to
+mint money, which is exactly what it was before this rule existed.
+
+**Staff powers may not be used on the actor's own account.** A teller taking a deposit
+into their own wallet is the textbook internal fraud, so the check is on identity rather
+than on role: if the actor owns the account, the counter refuses and tells them to ask a
+colleague. A colleague serving the same account is fine.
+
+**Permissions have amounts, not only verbs.** A teller may hand over up to
+`limits.teller.max-cash` (20,000 by default); above that the counter refuses and a
+`SUPERVISOR` or `ADMIN` must handle it. Role alone is too coarse a control for money.
+
+Two further lines are deliberate. **A teller cannot transfer out of a customer's account**:
 taking cash in and paying it out at a counter is a teller operation, but instructing a
 payment to a third party is the customer's own act. And **a teller cannot reverse**,
 because the person who made the mistake should not be the one who erases it.

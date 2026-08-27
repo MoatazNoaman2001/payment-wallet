@@ -25,7 +25,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.UUID;
 
 @Controller
-@PreAuthorize("@ownership.isStaff(authentication)")
+@PreAuthorize("@ownership.isStaff(authentication)")   // per-account rules live in CashService
 @RequiredArgsConstructor
 public class WebCashController {
 

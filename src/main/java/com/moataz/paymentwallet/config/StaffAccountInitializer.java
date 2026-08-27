@@ -41,16 +41,32 @@ public class StaffAccountInitializer implements ApplicationRunner {
     @Value("${staff.teller.password:teller12345}")
     private String tellerPassword;
 
+    @Value("${staff.supervisor.email:supervisor@paymentwallet.local}")
+    private String supervisorEmail;
+
+    @Value("${staff.supervisor.password:supervisor12345}")
+    private String supervisorPassword;
+
+    @Value("${staff.auditor.email:auditor@paymentwallet.local}")
+    private String auditorEmail;
+
+    @Value("${staff.auditor.password:auditor12345}")
+    private String auditorPassword;
+
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
         ensureRoles();
         ensureStaff(adminEmail, "+000000000001", "Demo Administrator", adminPassword, Role.ADMIN);
         ensureStaff(tellerEmail, "+000000000002", "Demo Teller", tellerPassword, Role.TELLER);
+        ensureStaff(supervisorEmail, "+000000000003", "Demo Supervisor",
+                    supervisorPassword, Role.SUPERVISOR);
+        ensureStaff(auditorEmail, "+000000000004", "Demo Auditor", auditorPassword, Role.AUDITOR);
     }
 
     private void ensureRoles() {
-        List<String> created = List.of(Role.CUSTOMER, Role.MERCHANT, Role.TELLER, Role.ADMIN).stream()
+        List<String> created = List.of(Role.CUSTOMER, Role.MERCHANT, Role.TELLER, Role.SUPERVISOR,
+                        Role.OPS, Role.COMPLIANCE, Role.AUDITOR, Role.ADMIN).stream()
                 .filter(name -> roleRepository.findByName(name).isEmpty())
                 .map(this::createRole)
                 .toList();

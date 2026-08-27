@@ -52,7 +52,7 @@ class Phase5ReliabilityTest {
         // ledger behind it is exactly what reconciliation is supposed to flag
         aliceWallet = newAccount(alice, BigDecimal.ZERO);
         bobWallet = newAccount(newUser("bob"), BigDecimal.ZERO);
-        cashService.deposit(aliceWallet.getAccountNumber(), alice.getPublicId(),
+        cashService.deposit(aliceWallet.getAccountNumber(), newUser("cashier").getPublicId(),
                 new CashRequest(new BigDecimal("500.0000"), "opening balance"),
                 UUID.randomUUID().toString());
     }

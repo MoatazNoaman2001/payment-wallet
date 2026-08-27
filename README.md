@@ -100,6 +100,12 @@ enabled for the pages (cookies are sent automatically, so a cross-site form post
 otherwise be authenticated) and left off for `/api/**`, whose clients send an explicit
 header that no cross-site form can forge.
 
+**Staff cannot serve themselves, and permissions have amounts.** A teller may not take a
+deposit into their own account — the check is on identity, not role, because that is the
+textbook internal fraud — and may only hand over up to a configured counter limit before a
+supervisor must step in. Customers cannot deposit into their own accounts at all: a deposit
+is triggered from outside the system, never by the customer asserting it.
+
 **A browser form cannot double-spend.** The transfer page embeds a one-time idempotency key
 generated when the form is rendered, so a double click or a post-submit refresh reuses the
 same key and the engine returns the original transfer instead of moving money again — the

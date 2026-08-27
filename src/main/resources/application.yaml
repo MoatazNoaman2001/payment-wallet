@@ -73,3 +73,8 @@ info:
   app:
     name: Payment Wallet
     description: Double-entry ledger, idempotent transfers, measured concurrency control
+
+# Counter limits: a teller may hand over only so much without a supervisor
+limits:
+  teller:
+    max-cash: 20000

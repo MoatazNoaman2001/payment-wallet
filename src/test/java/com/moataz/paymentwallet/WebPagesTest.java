@@ -46,15 +46,19 @@ class WebPagesTest {
     private AppUser alice;
     private AppUser mallory;
     private AppUser teller;
+    private AppUser supervisor;
+    private AppUser adminUser;
     private Account aliceWallet;
 
     @BeforeEach
     void setUp() {
         alice = newUser("alice");
         mallory = newUser("mallory");
-        teller = newUser("teller");
+        teller = newStaffUser("teller", Role.TELLER);
+        supervisor = newStaffUser("supervisor", Role.SUPERVISOR);
+        adminUser = newStaffUser("boss", Role.ADMIN);
         aliceWallet = newAccount(alice);
-        cashService.deposit(aliceWallet.getAccountNumber(), alice.getPublicId(),
+        cashService.deposit(aliceWallet.getAccountNumber(), teller.getPublicId(),
                 new CashRequest(new BigDecimal("750.0000"), "opening balance"),
                 UUID.randomUUID().toString());
     }
@@ -295,6 +299,62 @@ class WebPagesTest {
     }
 
     @Test
+    @DisplayName("a teller may not serve their own account, but a colleague may")
+    void staffCannotServeThemselves() throws Exception {
+        Account tellerWallet = newAccount(teller);
+
+        mockMvc.perform(post("/cash/deposit").with(asTeller())
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("accountNumber", tellerWallet.getAccountNumber())
+                        .param("amount", "5000.00")
+                        .param("idempotencyKey", UUID.randomUUID().toString()))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("your own account")));
+
+        assertThat(accountRepository.findById(tellerWallet.getId()).orElseThrow().getBalance())
+                .isEqualByComparingTo("0.0000");
+
+        mockMvc.perform(post("/cash/deposit").with(asAdmin())
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("accountNumber", tellerWallet.getAccountNumber())
+                        .param("amount", "5000.00")
+                        .param("idempotencyKey", UUID.randomUUID().toString()))
+               .andExpect(status().is3xxRedirection());
+
+        assertThat(accountRepository.findById(tellerWallet.getId()).orElseThrow().getBalance())
+                .isEqualByComparingTo("5000.0000");
+    }
+
+    @Test
+    @DisplayName("a teller is capped at the counter limit; a supervisor is not")
+    void tellerCashLimitApplies() throws Exception {
+        mockMvc.perform(post("/cash/deposit").with(asTeller())
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("accountNumber", aliceWallet.getAccountNumber())
+                        .param("amount", "25000.00")
+                        .param("idempotencyKey", UUID.randomUUID().toString()))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("teller limit")));
+
+        assertThat(accountRepository.findById(aliceWallet.getId()).orElseThrow().getBalance())
+                .isEqualByComparingTo("750.0000");
+
+        mockMvc.perform(post("/cash/deposit").with(asSupervisor())
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("accountNumber", aliceWallet.getAccountNumber())
+                        .param("amount", "25000.00")
+                        .param("idempotencyKey", UUID.randomUUID().toString()))
+               .andExpect(status().is3xxRedirection());
+
+        assertThat(accountRepository.findById(aliceWallet.getId()).orElseThrow().getBalance())
+                .isEqualByComparingTo("25750.0000");
+    }
+
+    @Test
     @DisplayName("the cash desk is staff only")
     void cashDeskIsStaffOnly() throws Exception {
         mockMvc.perform(get("/cash").with(asUser(alice)).accept(org.springframework.http.MediaType.TEXT_HTML))
@@ -353,7 +413,7 @@ class WebPagesTest {
                         .with(org.springframework.security.test.web.servlet.request
                                 .SecurityMockMvcRequestPostProcessors.csrf())
                         .param("accountNumber", aliceWallet.getAccountNumber())
-                        .param("amount", "999999.00")
+                        .param("amount", "5000.00")   // under the teller limit, over the balance
                         .param("idempotencyKey", UUID.randomUUID().toString()))
                .andExpect(status().isOk())
                .andExpect(content().string(org.hamcrest.Matchers.containsString("Insufficient funds")));
@@ -403,11 +463,20 @@ class WebPagesTest {
                 .authorities(new SimpleGrantedAuthority("ROLE_TELLER"));
     }
 
+    private RequestPostProcessor asSupervisor() {
+        return jwt()
+                .jwt(builder -> builder
+                        .subject(supervisor.getPublicId().toString())
+                        .claim("email", supervisor.getEmail())
+                        .claim("roles", List.of("ROLE_SUPERVISOR")))
+                .authorities(new SimpleGrantedAuthority("ROLE_SUPERVISOR"));
+    }
+
     private RequestPostProcessor asAdmin() {
         return jwt()
                 .jwt(builder -> builder
-                        .subject(UUID.randomUUID().toString())
-                        .claim("email", "admin@paymentwallet.local")
+                        .subject(adminUser.getPublicId().toString())
+                        .claim("email", adminUser.getEmail())
                         .claim("roles", List.of("ROLE_ADMIN")))
                 .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"));
     }
@@ -419,6 +488,13 @@ class WebPagesTest {
                         .claim("email", user.getEmail())
                         .claim("roles", List.of("ROLE_CUSTOMER")))
                 .authorities(new SimpleGrantedAuthority("ROLE_CUSTOMER"));
+    }
+
+    /** The role has to exist in the database too: cash limits are read from the actor's roles. */
+    private AppUser newStaffUser(String name, String role) {
+        AppUser user = newUser(name);
+        roleRepository.findByName(role).ifPresent(user::addRole);
+        return userRepository.saveAndFlush(user);
     }
 
     private AppUser newUser(String name) {

@@ -32,7 +32,7 @@ public class CashController {
 
     @Operation(summary = "Deposit into an account",
                description = "SYSTEM settlement account -> wallet, recorded as a TOPUP transfer.")
-    @PreAuthorize("@ownership.canServiceAccount(#accountNumber, authentication)")
+    @PreAuthorize("@ownership.canOperateCash(#accountNumber, authentication)")
     @PostMapping("/deposits")
     public ResponseEntity<TransferResponse> deposit(
             @Parameter(description = "The customer wallet to credit, e.g. PW0012345678901234. "
@@ -47,7 +47,7 @@ public class CashController {
 
     @Operation(summary = "Withdraw from an account",
                description = "Wallet -> SYSTEM settlement account, recorded as a WITHDRAWAL transfer.")
-    @PreAuthorize("@ownership.canServiceAccount(#accountNumber, authentication)")
+    @PreAuthorize("@ownership.canOperateCash(#accountNumber, authentication)")
     @PostMapping("/withdrawals")
     public ResponseEntity<TransferResponse> withdraw(
             @Parameter(description = "The customer wallet to debit, e.g. PW0012345678901234.",

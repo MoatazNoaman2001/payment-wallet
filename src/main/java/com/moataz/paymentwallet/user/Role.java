@@ -14,6 +14,10 @@ public class Role {
     public static final String CUSTOMER = "ROLE_CUSTOMER";
     public static final String MERCHANT = "ROLE_MERCHANT";
     public static final String TELLER   = "ROLE_TELLER";
+    public static final String SUPERVISOR = "ROLE_SUPERVISOR";
+    public static final String OPS        = "ROLE_OPS";
+    public static final String COMPLIANCE = "ROLE_COMPLIANCE";
+    public static final String AUDITOR    = "ROLE_AUDITOR";
     public static final String ADMIN    = "ROLE_ADMIN";
 
     @Id

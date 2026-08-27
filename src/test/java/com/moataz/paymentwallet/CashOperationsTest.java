@@ -40,6 +40,7 @@ class CashOperationsTest {
     private java.math.BigDecimal settlementAtStart;
     private java.math.BigDecimal settlementLedgerAtStart;
     private AppUser alice;
+    private AppUser cashier;
     private Account wallet;
 
     @BeforeEach
@@ -50,6 +51,7 @@ class CashOperationsTest {
         settlementLedgerAtStart = ledgerEntryRepository.balanceFromLedger(
                 accountRepository.findByAccountNumber("SYSTEM-EGP").orElseThrow().getId());
         alice = newUser("alice");
+        cashier = newUser("cashier");
         wallet = newAccount(alice);
     }
 
@@ -63,7 +65,7 @@ class CashOperationsTest {
     @Test
     @DisplayName("a deposit credits the wallet and debits the settlement account")
     void deposits() {
-        TransferResponse response = cashService.deposit(wallet.getAccountNumber(), alice.getPublicId(),
+        TransferResponse response = cashService.deposit(wallet.getAccountNumber(), cashier.getPublicId(),
                 new CashRequest(new BigDecimal("250.0000"), "salary"), UUID.randomUUID().toString());
 
         assertThat(response.type()).isEqualTo(TransferType.TOPUP);
@@ -81,10 +83,10 @@ class CashOperationsTest {
     @Test
     @DisplayName("a withdrawal moves money back out and reconciles")
     void withdraws() {
-        cashService.deposit(wallet.getAccountNumber(), alice.getPublicId(),
+        cashService.deposit(wallet.getAccountNumber(), cashier.getPublicId(),
                 new CashRequest(new BigDecimal("100.0000"), null), UUID.randomUUID().toString());
 
-        TransferResponse response = cashService.withdraw(wallet.getAccountNumber(), alice.getPublicId(),
+        TransferResponse response = cashService.withdraw(wallet.getAccountNumber(), cashier.getPublicId(),
                 new CashRequest(new BigDecimal("30.0000"), "atm"), UUID.randomUUID().toString());
 
         assertThat(response.type()).isEqualTo(TransferType.WITHDRAWAL);
@@ -100,12 +102,12 @@ class CashOperationsTest {
     @Test
     @DisplayName("a wallet cannot be overdrawn, but the settlement account can")
     void rejectsOverdraft() {
-        assertThatThrownBy(() -> cashService.withdraw(wallet.getAccountNumber(), alice.getPublicId(),
+        assertThatThrownBy(() -> cashService.withdraw(wallet.getAccountNumber(), cashier.getPublicId(),
                 new CashRequest(new BigDecimal("1.0000"), null), UUID.randomUUID().toString()))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Insufficient funds");
 
-        cashService.deposit(wallet.getAccountNumber(), alice.getPublicId(),
+        cashService.deposit(wallet.getAccountNumber(), cashier.getPublicId(),
                 new CashRequest(new BigDecimal("5000.0000"), null), UUID.randomUUID().toString());
         assertThat(settlementMoved()).isEqualByComparingTo("-5000.0000");
     }
@@ -116,8 +118,8 @@ class CashOperationsTest {
         String key = UUID.randomUUID().toString();
         CashRequest request = new CashRequest(new BigDecimal("40.0000"), null);
 
-        TransferResponse first = cashService.deposit(wallet.getAccountNumber(), alice.getPublicId(), request, key);
-        TransferResponse retry = cashService.deposit(wallet.getAccountNumber(), alice.getPublicId(), request, key);
+        TransferResponse first = cashService.deposit(wallet.getAccountNumber(), cashier.getPublicId(), request, key);
+        TransferResponse retry = cashService.deposit(wallet.getAccountNumber(), cashier.getPublicId(), request, key);
 
         assertThat(retry.reference()).isEqualTo(first.reference());
         assertThat(balanceOf(wallet)).isEqualByComparingTo("40.0000");
@@ -127,12 +129,12 @@ class CashOperationsTest {
     @Test
     @DisplayName("targeting the settlement account itself is rejected with a clear message")
     void rejectsSettlementAccountAsTarget() {
-        assertThatThrownBy(() -> cashService.deposit("SYSTEM-EGP", alice.getPublicId(),
+        assertThatThrownBy(() -> cashService.deposit("SYSTEM-EGP", cashier.getPublicId(),
                 new CashRequest(new BigDecimal("50000.0000"), "ATM DEPOSIT"), "DEP-101"))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Cannot deposit into settlement account SYSTEM-EGP");
 
-        assertThatThrownBy(() -> cashService.withdraw("SYSTEM-EGP", alice.getPublicId(),
+        assertThatThrownBy(() -> cashService.withdraw("SYSTEM-EGP", cashier.getPublicId(),
                 new CashRequest(new BigDecimal("10.0000"), null), "WDR-101"))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Cannot withdraw from settlement account SYSTEM-EGP");

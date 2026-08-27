@@ -52,9 +52,12 @@ public class DemoDataSeeder implements ApplicationRunner {
         String monaWallet = openWallet(mona.publicId());
         String ahmedWallet = openWallet(ahmed.publicId());
 
-        cashService.deposit(monaWallet, mona.publicId(),
+        UUID staff = userRepository.findByEmailWithRoles("teller@paymentwallet.local")
+                .map(u -> u.getPublicId()).orElse(mona.publicId());
+
+        cashService.deposit(monaWallet, staff,
                 new CashRequest(new BigDecimal("5000.0000"), "Salary payout"), key());
-        cashService.deposit(ahmedWallet, ahmed.publicId(),
+        cashService.deposit(ahmedWallet, staff,
                 new CashRequest(new BigDecimal("1200.0000"), "Card top-up"), key());
 
         pay(mona.publicId(), monaWallet, ahmedWallet, "450.0000", "Weekly groceries", "groceries");
@@ -63,7 +66,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         pay(mona.publicId(), monaWallet, ahmedWallet, "320.0000", "Supermarket", "groceries");
         pay(ahmed.publicId(), ahmedWallet, monaWallet, "200.0000", "Splitting dinner", "entertainment");
 
-        cashService.withdraw(ahmedWallet, ahmed.publicId(),
+        cashService.withdraw(ahmedWallet, staff,
                 new CashRequest(new BigDecimal("500.0000"), "ATM withdrawal"), key());
 
         log.info("""
