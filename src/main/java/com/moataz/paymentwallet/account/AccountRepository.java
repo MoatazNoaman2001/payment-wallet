@@ -79,6 +79,14 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
            """)
     List<Account> findSettlementAccounts();
 
+    @Query("""
+           select a from Account a
+             join fetch a.user
+             join fetch a.currency
+           where a.accountNumber = :accountNumber
+           """)
+    Optional<Account> findWithOwnerByAccountNumber(String accountNumber);
+
     @Query("select a.id from Account a where a.user.id in :ownerIds")
     List<Long> findIdsByOwnerIds(Collection<Long> ownerIds);
 

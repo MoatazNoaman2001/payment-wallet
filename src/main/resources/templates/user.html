@@ -55,6 +55,11 @@
                 <span class="balance-ccy" th:text="${a.currencyCode}">EGP</span>
             </span>
         </a>
+        <div class="acct-line" th:if="${staff}" style="justify-content:flex-end;gap:8px">
+            <a class="btn btn-outline btn-sm" th:each="a : ${accounts}"
+               th:href="@{/cash(account=${a.accountNumber})}"
+               th:text="'Cash desk · ' + ${a.accountNumber}">Cash desk</a>
+        </div>
     </div>
 
     <div class="empty" th:if="${accounts.isEmpty()}">No accounts yet.</div>

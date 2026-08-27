@@ -190,6 +190,8 @@ statement, and an operations page. It is responsive and shares the API's authori
 | `GET` | `/accounts` (HTML) | own accounts, or every account for staff | authenticated |
 | `GET` | `/accounts/{n}/statement` (HTML) | paginated, filterable statement | owner or staff |
 | `GET`/`POST` | `/transfer` (HTML) | send money between accounts | owner of the source |
+| `GET` | `/cash` (HTML) | teller desk: look up an account, take or pay cash | staff |
+| `POST` | `/cash/deposit`, `/cash/withdraw` | counter operations | staff |
 | `GET` | `/admin` (HTML) | reconciliation status and outbox backlog | **admin** |
 | `POST` | `/api/auth/login` | issue access + refresh cookies | public |
 | `POST` | `/api/auth/refresh` | rotate the refresh token | public |
@@ -357,6 +359,7 @@ joins, and the four kinds of JPA projection.
 - [x] Thymeleaf: navigation, staff account list, operations page, responsive layout
 - [x] Thymeleaf: registration, customer list, profile with activation and account opening
 - [x] Thymeleaf page: transfer form with browser-safe idempotency
+- [x] Thymeleaf page: teller cash desk (open accounts, deposit, withdraw)
 - [ ] Testcontainers, metrics
 
 Not implemented yet: fees (a third ledger leg into a fee account), persisted `FAILED`

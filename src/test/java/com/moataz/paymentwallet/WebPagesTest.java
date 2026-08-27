@@ -45,12 +45,14 @@ class WebPagesTest {
 
     private AppUser alice;
     private AppUser mallory;
+    private AppUser teller;
     private Account aliceWallet;
 
     @BeforeEach
     void setUp() {
         alice = newUser("alice");
         mallory = newUser("mallory");
+        teller = newUser("teller");
         aliceWallet = newAccount(alice);
         cashService.deposit(aliceWallet.getAccountNumber(), alice.getPublicId(),
                 new CashRequest(new BigDecimal("750.0000"), "opening balance"),
@@ -256,6 +258,71 @@ class WebPagesTest {
     }
 
     @Test
+    @DisplayName("the cash desk is staff only")
+    void cashDeskIsStaffOnly() throws Exception {
+        mockMvc.perform(get("/cash").with(asUser(alice)).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/cash/deposit").with(asUser(alice))
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("accountNumber", aliceWallet.getAccountNumber())
+                        .param("amount", "1000000")
+                        .param("idempotencyKey", UUID.randomUUID().toString()))
+               .andExpect(status().isForbidden());
+
+        assertThat(accountRepository.findById(aliceWallet.getId()).orElseThrow().getBalance())
+                .isEqualByComparingTo("750.0000");
+    }
+
+    @Test
+    @DisplayName("a teller can take cash in and pay it out, once per key")
+    void tellerTakesAndPaysCash() throws Exception {
+        String key = UUID.randomUUID().toString();
+
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mockMvc.perform(post("/cash/deposit").with(asTeller())
+                            .with(org.springframework.security.test.web.servlet.request
+                                    .SecurityMockMvcRequestPostProcessors.csrf())
+                            .param("accountNumber", aliceWallet.getAccountNumber())
+                            .param("amount", "200.00")
+                            .param("description", "counter cash")
+                            .param("idempotencyKey", key))
+                   .andExpect(status().is3xxRedirection());
+        }
+        assertThat(accountRepository.findById(aliceWallet.getId()).orElseThrow().getBalance())
+                .isEqualByComparingTo("950.0000");
+
+        mockMvc.perform(post("/cash/withdraw").with(asTeller())
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("accountNumber", aliceWallet.getAccountNumber())
+                        .param("amount", "150.00")
+                        .param("idempotencyKey", UUID.randomUUID().toString()))
+               .andExpect(status().is3xxRedirection());
+        assertThat(accountRepository.findById(aliceWallet.getId()).orElseThrow().getBalance())
+                .isEqualByComparingTo("800.0000");
+    }
+
+    @Test
+    @DisplayName("the cash desk refuses a settlement account and reports overdrafts inline")
+    void cashDeskGuards() throws Exception {
+        mockMvc.perform(get("/cash").param("account", "SYSTEM-EGP").with(asTeller())
+                        .accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("settlement account")));
+
+        mockMvc.perform(post("/cash/withdraw").with(asTeller())
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("accountNumber", aliceWallet.getAccountNumber())
+                        .param("amount", "999999.00")
+                        .param("idempotencyKey", UUID.randomUUID().toString()))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("Insufficient funds")));
+    }
+
+    @Test
     @DisplayName("the admin operations page is admin only")
     void adminPageIsAdminOnly() throws Exception {
         mockMvc.perform(get("/admin").with(asUser(alice)).accept(org.springframework.http.MediaType.TEXT_HTML))
@@ -288,6 +355,15 @@ class WebPagesTest {
         mockMvc.perform(get("/accounts/{n}/statement", aliceWallet.getAccountNumber())
                         .with(asUser(mallory)).accept(org.springframework.http.MediaType.TEXT_HTML))
                .andExpect(status().isForbidden());
+    }
+
+    private RequestPostProcessor asTeller() {
+        return jwt()
+                .jwt(builder -> builder
+                        .subject(teller.getPublicId().toString())
+                        .claim("email", teller.getEmail())
+                        .claim("roles", List.of("ROLE_TELLER")))
+                .authorities(new SimpleGrantedAuthority("ROLE_TELLER"));
     }
 
     private RequestPostProcessor asAdmin() {

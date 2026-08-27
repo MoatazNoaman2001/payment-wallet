@@ -112,6 +112,13 @@ public class AccountService {
     }
 
     @Transactional(readOnly = true)
+    public AccountRow findRowByNumber(String accountNumber) {
+        return accountRepository.findWithOwnerByAccountNumber(accountNumber)
+                .map(AccountRow::from)
+                .orElseThrow(() -> new NotFoundException("No account " + accountNumber));
+    }
+
+    @Transactional(readOnly = true)
     public List<AccountRow> settlementAccounts() {
         return accountRepository.findSettlementAccounts().stream().map(AccountRow::from).toList();
     }
