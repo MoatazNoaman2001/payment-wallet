@@ -32,7 +32,7 @@ public class WebStatementController {
     private final StatementService statementService;
     private final AccountService accountService;
 
-    @PreAuthorize("@ownership.ownsAccount(#accountNumber, authentication)")
+    @PreAuthorize("@ownership.canServiceAccount(#accountNumber, authentication)")
     @GetMapping("/accounts/{accountNumber}/statement")
     public String statement(
             @PathVariable String accountNumber,

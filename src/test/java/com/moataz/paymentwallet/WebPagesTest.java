@@ -258,6 +258,30 @@ class WebPagesTest {
     }
 
     @Test
+    @DisplayName("a denied page renders HTML, while the API keeps returning problem+json")
+    void deniedPagesRenderHtml() throws Exception {
+        mockMvc.perform(get("/accounts/{n}/statement", aliceWallet.getAccountNumber())
+                        .with(asUser(mallory)).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isForbidden())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("<!DOCTYPE html>")))
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("Not yours")));
+
+        mockMvc.perform(get("/api/accounts/{n}/statement", aliceWallet.getAccountNumber())
+                        .with(asUser(mallory)))
+               .andExpect(status().isForbidden())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("\"title\":\"Access denied\"")));
+    }
+
+    @Test
+    @DisplayName("a teller can read a customer's statement page")
+    void tellerReadsStatement() throws Exception {
+        mockMvc.perform(get("/accounts/{n}/statement", aliceWallet.getAccountNumber())
+                        .with(asTeller()).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString(aliceWallet.getAccountNumber())));
+    }
+
+    @Test
     @DisplayName("the cash desk is staff only")
     void cashDeskIsStaffOnly() throws Exception {
         mockMvc.perform(get("/cash").with(asUser(alice)).accept(org.springframework.http.MediaType.TEXT_HTML))

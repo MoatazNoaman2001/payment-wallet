@@ -372,3 +372,8 @@ input[type=number]:focus { outline: none; border-color: var(--ring); box-shadow:
 .cash-actions { display: flex; gap: 10px; margin-top: 18px; }
 .cash-actions .btn { flex: 1; }
 @media (max-width: 760px) { .cash-row { flex-direction: column; } }
+
+.error-code {
+    font-size: 40px; font-weight: 700; letter-spacing: -0.03em;
+    color: var(--muted-foreground); margin-bottom: 4px;
+}

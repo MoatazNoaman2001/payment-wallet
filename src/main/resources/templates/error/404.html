@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>404 · Payment Wallet</title>
+    <link rel="stylesheet" th:href="@{/css/wallet.css}">
+</head>
+<body>
+<div class="login-page">
+    <div class="login-card" style="text-align:center">
+        <div class="brand" style="margin-bottom:20px">payment<span>wallet</span></div>
+        <div class="error-code">404</div>
+        <h1 class="login-title">Not found</h1>
+        <p class="login-sub">That page does not exist.</p>
+        <a class="btn btn-block" th:href="@{/accounts}" style="margin-top:6px">Back to accounts</a>
+    </div>
+</div>
+</body>
+</html>
