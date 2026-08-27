@@ -87,6 +87,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
            """)
     Optional<Account> findWithOwnerByAccountNumber(String accountNumber);
 
+    long countByUserPublicId(UUID publicId);
+
     @Query("select a.id from Account a where a.user.id in :ownerIds")
     List<Long> findIdsByOwnerIds(Collection<Long> ownerIds);
 

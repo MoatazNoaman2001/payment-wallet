@@ -282,6 +282,19 @@ class WebPagesTest {
     }
 
     @Test
+    @DisplayName("Send money appears only for someone who owns an account")
+    void sendMoneyNavIsDataDriven() throws Exception {
+        mockMvc.perform(get("/accounts").with(asUser(alice)).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString(">Send money<")));
+
+        mockMvc.perform(get("/accounts").with(asTeller()).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.not(
+                       org.hamcrest.Matchers.containsString(">Send money<"))));
+    }
+
+    @Test
     @DisplayName("the cash desk is staff only")
     void cashDeskIsStaffOnly() throws Exception {
         mockMvc.perform(get("/cash").with(asUser(alice)).accept(org.springframework.http.MediaType.TEXT_HTML))

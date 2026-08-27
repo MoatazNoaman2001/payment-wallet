@@ -18,6 +18,14 @@ public class CurrentUser {
         return UUID.fromString(jwt.getSubject());
     }
 
+    public java.util.Optional<UUID> publicIdIfPresent() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof Jwt jwt)) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(UUID.fromString(jwt.getSubject()));
+    }
+
     public boolean isStaff() {
         return hasRole("ROLE_ADMIN") || hasRole("ROLE_TELLER");
     }

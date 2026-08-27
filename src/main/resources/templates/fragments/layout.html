@@ -7,7 +7,7 @@
         <a class="brand" th:href="@{/accounts}">payment<span>wallet</span></a>
         <nav class="nav">
             <a th:href="@{/accounts}" th:classappend="${active == 'accounts'} ? 'on'">Accounts</a>
-            <a sec:authorize="isAuthenticated()" th:href="@{/transfer}"
+            <a sec:authorize="isAuthenticated()" th:if="${hasAccounts}" th:href="@{/transfer}"
                th:classappend="${active == 'transfer'} ? 'on'">Send money</a>
             <a sec:authorize="hasAnyRole('ADMIN','TELLER')" th:href="@{/cash}"
                th:classappend="${active == 'cash'} ? 'on'">Cash desk</a>
