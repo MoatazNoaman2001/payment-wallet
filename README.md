@@ -100,6 +100,11 @@ enabled for the pages (cookies are sent automatically, so a cross-site form post
 otherwise be authenticated) and left off for `/api/**`, whose clients send an explicit
 header that no cross-site form can forge.
 
+**A browser form cannot double-spend.** The transfer page embeds a one-time idempotency key
+generated when the form is rendered, so a double click or a post-submit refresh reuses the
+same key and the engine returns the original transfer instead of moving money again — the
+same guarantee the JSON API gives API clients, without asking the browser to invent one.
+
 **Every log line carries a request id.** A servlet filter puts one in the SLF4J MDC and
 echoes it as `X-Request-Id`, so a single request can be followed through interleaved
 concurrent logs:
@@ -184,6 +189,7 @@ statement, and an operations page. It is responsive and shares the API's authori
 | `POST` | `/users/{publicId}/activate` | complete KYC activation | **admin** |
 | `GET` | `/accounts` (HTML) | own accounts, or every account for staff | authenticated |
 | `GET` | `/accounts/{n}/statement` (HTML) | paginated, filterable statement | owner or staff |
+| `GET`/`POST` | `/transfer` (HTML) | send money between accounts | owner of the source |
 | `GET` | `/admin` (HTML) | reconciliation status and outbox backlog | **admin** |
 | `POST` | `/api/auth/login` | issue access + refresh cookies | public |
 | `POST` | `/api/auth/refresh` | rotate the refresh token | public |
@@ -350,7 +356,7 @@ joins, and the four kinds of JPA projection.
 - [x] Thymeleaf page: statement with filters and pagination
 - [x] Thymeleaf: navigation, staff account list, operations page, responsive layout
 - [x] Thymeleaf: registration, customer list, profile with activation and account opening
-- [ ] Thymeleaf page: transfer form
+- [x] Thymeleaf page: transfer form with browser-safe idempotency
 - [ ] Testcontainers, metrics
 
 Not implemented yet: fees (a third ledger leg into a fee account), persisted `FAILED`

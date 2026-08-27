@@ -24,6 +24,7 @@ import java.util.UUID;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -177,6 +178,81 @@ class WebPagesTest {
         mockMvc.perform(get("/users/{id}", alice.getPublicId())
                         .with(asUser(mallory)).accept(org.springframework.http.MediaType.TEXT_HTML))
                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("the transfer form lists the caller's accounts and carries a one-time key")
+    void transferFormRenders() throws Exception {
+        mockMvc.perform(get("/transfer").with(asUser(alice)).accept(org.springframework.http.MediaType.TEXT_HTML))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString(aliceWallet.getAccountNumber())))
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("idempotencyKey")));
+    }
+
+    @Test
+    @DisplayName("submitting the form twice with the same key moves the money once")
+    void transferFormIsIdempotent() throws Exception {
+        Account target = newAccount(alice);
+        String key = UUID.randomUUID().toString();
+
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mockMvc.perform(post("/transfer").with(asUser(alice))
+                            .with(org.springframework.security.test.web.servlet.request
+                                    .SecurityMockMvcRequestPostProcessors.csrf())
+                            .param("sourceAccountNumber", aliceWallet.getAccountNumber())
+                            .param("destAccountNumber", target.getAccountNumber())
+                            .param("amount", "50.00")
+                            .param("description", "double submit")
+                            .param("idempotencyKey", key))
+                   .andExpect(status().is3xxRedirection());
+        }
+
+        assertThat(accountRepository.findById(target.getId()).orElseThrow().getBalance())
+                .isEqualByComparingTo("50.0000");
+        assertThat(accountRepository.findById(aliceWallet.getId()).orElseThrow().getBalance())
+                .isEqualByComparingTo("700.0000");
+    }
+
+    @Test
+    @DisplayName("the form refuses to send from an account the caller does not own")
+    void transferFormEnforcesOwnership() throws Exception {
+        mockMvc.perform(post("/transfer").with(asUser(mallory))
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("sourceAccountNumber", aliceWallet.getAccountNumber())
+                        .param("destAccountNumber", aliceWallet.getAccountNumber())
+                        .param("amount", "10.00")
+                        .param("idempotencyKey", UUID.randomUUID().toString()))
+               .andExpect(status().isForbidden());
+
+        assertThat(accountRepository.findById(aliceWallet.getId()).orElseThrow().getBalance())
+                .isEqualByComparingTo("750.0000");
+    }
+
+    @Test
+    @DisplayName("a rejected transfer re-renders the form with the reason")
+    void transferFormShowsBusinessErrors() throws Exception {
+        Account target = newAccount(alice);
+
+        mockMvc.perform(post("/transfer").with(asUser(alice))
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("sourceAccountNumber", aliceWallet.getAccountNumber())
+                        .param("destAccountNumber", target.getAccountNumber())
+                        .param("amount", "99999.00")
+                        .param("idempotencyKey", UUID.randomUUID().toString()))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("Insufficient funds")));
+
+        mockMvc.perform(post("/transfer").with(asUser(alice))
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("sourceAccountNumber", aliceWallet.getAccountNumber())
+                        .param("destAccountNumber", "PW9999999999999999")
+                        .param("amount", "10.00")
+                        .param("idempotencyKey", UUID.randomUUID().toString()))
+               .andExpect(status().isOk())
+               .andExpect(content().string(org.hamcrest.Matchers.containsString("No account with that number")));
     }
 
     @Test

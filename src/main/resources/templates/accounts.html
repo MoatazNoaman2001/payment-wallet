@@ -37,6 +37,8 @@
                 </div>
             </div>
             <div class="balance">
+                <a class="btn btn-outline btn-sm" style="margin-bottom:8px"
+                   th:href="@{/transfer(from=${account.accountNumber})}">Send</a><br>
                 <span class="balance-amount"
                       th:text="${#numbers.formatDecimal(account.balance, 1, 'COMMA', 2, 'POINT')}">0.00</span>
                 <span class="balance-ccy" th:text="${account.currencyCode}">EGP</span>
