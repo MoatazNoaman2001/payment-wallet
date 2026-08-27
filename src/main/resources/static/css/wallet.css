@@ -377,3 +377,22 @@ input[type=number]:focus { outline: none; border-color: var(--ring); box-shadow:
     font-size: 40px; font-weight: 700; letter-spacing: -0.03em;
     color: var(--muted-foreground); margin-bottom: 4px;
 }
+
+/* ---------- statement table sizing ---------- */
+
+table.statement { table-layout: fixed; }
+table.statement .c-date   { width: 150px; }
+table.statement .c-ref    { width: 185px; }
+table.statement .c-type   { width: 92px; }
+table.statement .c-party  { width: 165px; }
+table.statement .c-amount { width: 130px; }
+
+td.truncate {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 0;
+}
+table.statement td.col-right { white-space: nowrap; }
+
+@media (max-width: 900px) {
+    table.statement .c-ref, table.statement th:nth-child(2), table.statement td:nth-child(2),
+    table.statement col.c-ref { display: none; }
+}

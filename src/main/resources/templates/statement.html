@@ -10,7 +10,7 @@
 
 <div th:replace="~{fragments/layout :: topbar('accounts')}"></div>
 
-<div class="wrap" style="max-width:920px">
+<div class="wrap" style="max-width:1040px">
 
     <a class="back" th:href="@{/accounts}">← Accounts</a>
 
@@ -74,7 +74,15 @@
 
     <div class="table-wrap" th:unless="${page.isEmpty()}">
     <div class="table-card">
-        <table>
+        <table class="statement">
+            <colgroup>
+                <col class="c-date">
+                <col class="c-ref">
+                <col class="c-type">
+                <col class="c-party">
+                <col class="c-desc">
+                <col class="c-amount">
+            </colgroup>
             <thead>
             <tr>
                 <th>Date</th>
@@ -89,10 +97,13 @@
             <tr th:each="line : ${page.content}">
                 <td class="nowrap muted"
                     th:text="${#temporals.format(line.date, 'dd MMM yyyy, HH:mm')}">22 Aug 2026, 19:16</td>
-                <td class="mono" th:text="${line.reference}">TRF0000000000000000000</td>
+                <td class="mono truncate" th:title="${line.reference}"
+                    th:text="${line.reference}">TRF0000000000000000000</td>
                 <td><span class="badge outline" th:text="${line.type}">P2P</span></td>
-                <td class="mono muted" th:text="${line.counterpartyAccount}">SYSTEM-EGP</td>
-                <td th:text="${line.description}">—</td>
+                <td class="mono muted truncate" th:title="${line.counterpartyAccount}"
+                    th:text="${line.counterpartyAccount}">SYSTEM-EGP</td>
+                <td class="truncate" th:title="${line.description}"
+                    th:text="${line.description}">—</td>
                 <td class="col-right nowrap">
                     <div class="amount"
                          th:classappend="${line.direction.name() == 'CREDIT'} ? 'credit' : 'debit'"
