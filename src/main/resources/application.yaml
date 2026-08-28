@@ -78,3 +78,8 @@ info:
 limits:
   teller:
     max-cash: 20000
+  # How much may leave an account per day, by verification tier. 0 means no ceiling.
+  kyc:
+    basic: 5000
+    verified: 50000
+    enhanced: 0

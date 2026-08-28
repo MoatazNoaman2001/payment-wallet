@@ -166,7 +166,7 @@ class Phase4SecurityTest {
     }
 
     @Test
-    @DisplayName("Mallory cannot deposit into Alice's wallet, and activation is admin only")
+    @DisplayName("Mallory cannot deposit into Alice's wallet, nor verify her identity")
     void cannotOperateOnSomeoneElsesWallet() throws Exception {
         mockMvc.perform(post("/api/accounts/" + aliceWallet.getAccountNumber() + "/deposits")
                         .header("Authorization", "Bearer " + malloryToken)
@@ -175,8 +175,10 @@ class Phase4SecurityTest {
                         .content("{\"amount\": 50.0000}"))
                .andExpect(status().isForbidden());
 
-        mockMvc.perform(post("/api/users/" + alice.getPublicId() + "/activation")
-                        .header("Authorization", "Bearer " + malloryToken))
+        mockMvc.perform(post("/api/users/" + alice.getPublicId() + "/kyc-review")
+                        .header("Authorization", "Bearer " + malloryToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tier\": \"ENHANCED\"}"))
                .andExpect(status().isForbidden());
 
         assertThat(accountRepository.findById(aliceWallet.getId()).orElseThrow().getBalance())

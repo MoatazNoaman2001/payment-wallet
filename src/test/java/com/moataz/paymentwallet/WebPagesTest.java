@@ -157,7 +157,7 @@ class WebPagesTest {
     }
 
     @Test
-    @DisplayName("the customers list is staff only, and activation is admin only")
+    @DisplayName("the customers list is staff only, and identity review is compliance only")
     void customerAdministrationIsRestricted() throws Exception {
         mockMvc.perform(get("/users").with(asUser(alice)).accept(org.springframework.http.MediaType.TEXT_HTML))
                .andExpect(status().isForbidden());
@@ -166,7 +166,8 @@ class WebPagesTest {
                .andExpect(status().isOk())
                .andExpect(content().string(org.hamcrest.Matchers.containsString("registered")));
 
-        mockMvc.perform(post("/users/{id}/activate", alice.getPublicId())
+        mockMvc.perform(post("/users/{id}/kyc-review", alice.getPublicId())
+                        .param("tier", "ENHANCED")
                         .with(asUser(alice))
                         .with(org.springframework.security.test.web.servlet.request
                                 .SecurityMockMvcRequestPostProcessors.csrf()))

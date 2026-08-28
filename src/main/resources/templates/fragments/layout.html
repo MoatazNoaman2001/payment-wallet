@@ -9,9 +9,12 @@
             <a th:href="@{/accounts}" th:classappend="${active == 'accounts'} ? 'on'">Accounts</a>
             <a sec:authorize="isAuthenticated()" th:if="${hasAccounts}" th:href="@{/transfer}"
                th:classappend="${active == 'transfer'} ? 'on'">Send money</a>
+            <a sec:authorize="isAuthenticated()" th:if="${needsVerification}" th:href="@{/verify}"
+               th:classappend="${active == 'verify'} ? 'on'">Verify identity</a>
             <a sec:authorize="hasAnyRole('ADMIN','TELLER')" th:href="@{/cash}"
                th:classappend="${active == 'cash'} ? 'on'">Cash desk</a>
-            <a sec:authorize="hasAnyRole('ADMIN','TELLER')" th:href="@{/users}"
+            <a sec:authorize="hasAnyRole('ADMIN','TELLER','SUPERVISOR','COMPLIANCE','AUDITOR','OPS')"
+               th:href="@{/users}"
                th:classappend="${active == 'users'} ? 'on'">Customers</a>
             <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin}"
                th:classappend="${active == 'admin'} ? 'on'">Admin</a>

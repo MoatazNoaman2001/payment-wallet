@@ -11,9 +11,17 @@
 <div th:replace="~{fragments/layout :: topbar('users')}"></div>
 
 <div class="wrap">
-    <a class="back" th:href="@{/users}" th:if="${staff}">← Customers</a>
+    <a class="back" th:href="@{/users}" th:if="${browsing}">← Customers</a>
 
-    <div class="alert alert-ok" th:if="${param.activated}" style="margin-bottom:16px">User activated.</div>
+    <div class="alert alert-ok" th:if="${param.registered}" style="margin-bottom:16px">
+        Customer registered. Compliance must verify the identity before money can move.
+    </div>
+    <div class="alert alert-ok" th:if="${param.kycSubmitted}" style="margin-bottom:16px">
+        Identity details saved and waiting for review.
+    </div>
+    <div class="alert alert-ok" th:if="${param.approved}" style="margin-bottom:16px">
+        Identity verified at <strong th:text="${param.approved}">VERIFIED</strong>. The holder is now active.
+    </div>
     <div class="alert alert-ok" th:if="${param.opened}" style="margin-bottom:16px">Account opened.</div>
     <div class="alert alert-error" th:if="${param.frozen}" style="margin-bottom:16px">
         <span class="mono" th:text="${param.frozen}">PW…</span> is frozen. It can neither send nor receive.
@@ -38,12 +46,65 @@
             <span class="acct-tags">
                 <span class="badge outline" th:each="r : ${user.roles}" th:text="${r}">ROLE_CUSTOMER</span>
             </span>
-            <form th:if="${admin and user.status.name() == 'PENDING'}"
-                  th:action="@{/users/{id}/activate(id=${user.publicId})}" method="post" style="margin-left:auto">
-                <button type="submit" class="btn btn-sm">Activate</button>
-            </form>
+        </div>
+        <div class="acct-line" th:if="${registrar != null}">
+            <span class="muted">Registered by</span>
+            <span th:text="${registrar}">Demo Teller</span>
         </div>
     </div>
+
+    <h2 class="section-title" style="margin-top:28px">Identity</h2>
+
+    <div class="kyc-state" th:if="${kyc != null}">
+        <div class="kyc-head">
+            <span class="badge" th:classappend="${kyc.reviewed} ? 'active'"
+                  th:text="${kyc.reviewed} ? ${kyc.tier} + ' · verified' : 'Awaiting review'">Awaiting review</span>
+            <span class="muted" th:if="${kyc.reviewed and kyc.dailyCeiling != null}">
+                sends up to
+                <strong th:text="${#numbers.formatDecimal(kyc.dailyCeiling, 1, 'COMMA', 0, 'POINT')}">50,000</strong>
+                per day
+            </span>
+            <span class="muted" th:if="${kyc.reviewed and kyc.dailyCeiling == null}">no daily ceiling</span>
+        </div>
+        <dl class="kv">
+            <dt>National id</dt><dd class="mono" th:text="${kyc.nationalId}">**********1234</dd>
+            <dt>Date of birth</dt><dd th:text="${#temporals.format(kyc.dateOfBirth, 'd MMM yyyy')}">1 Jan 1990</dd>
+            <dt>Address</dt><dd th:text="${kyc.address} ?: '—'">—</dd>
+            <dt>Submitted</dt>
+            <dd th:text="${#temporals.format(kyc.submittedAt, 'd MMM yyyy, HH:mm')}">1 Jan 2026</dd>
+            <dt th:if="${kyc.reviewed}">Reviewed by</dt>
+            <dd th:if="${kyc.reviewed}" th:text="${kyc.reviewedBy} ?: 'compliance'">Compliance</dd>
+            <dt th:if="${kyc.reviewNote != null}">Note</dt>
+            <dd th:if="${kyc.reviewNote != null}" th:text="${kyc.reviewNote}">note</dd>
+        </dl>
+    </div>
+
+    <div class="empty" th:if="${kyc == null}">
+        No identity details submitted yet, so there is nothing to review.
+    </div>
+
+    <form class="filters" style="margin-top:16px"
+          th:if="${canApprove and kyc != null and !kyc.reviewed}"
+          th:action="@{/users/{id}/kyc-review(id=${user.publicId})}" method="post">
+        <div class="field">
+            <label for="tier">Verify at tier</label>
+            <select id="tier" name="tier">
+                <option th:each="t : ${tiers}" th:value="${t}" th:text="${t}"
+                        th:selected="${t.name() == 'VERIFIED'}">VERIFIED</option>
+            </select>
+        </div>
+        <div class="field grow">
+            <label for="note">Note</label>
+            <input type="text" id="note" name="note" placeholder="id checked in branch">
+        </div>
+        <div class="actions">
+            <button type="submit" class="btn btn-sm">Approve identity</button>
+        </div>
+    </form>
+
+    <p class="hint" th:if="${staff and !canApprove and kyc != null and !kyc.reviewed}">
+        Waiting on compliance. Registering someone is not the same as vouching for them.
+    </p>
 
     <h2 class="section-title" style="margin-top:28px">Accounts</h2>
 
@@ -79,7 +140,7 @@
 
     <div class="empty" th:if="${accounts.isEmpty()}">No accounts yet.</div>
 
-    <form class="filters" style="margin-top:16px"
+    <form class="filters" style="margin-top:16px" th:if="${canOpen}"
           th:action="@{/users/{id}/accounts(id=${user.publicId})}" method="post">
         <div class="field">
             <label for="currencyCode">Currency</label>

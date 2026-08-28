@@ -28,7 +28,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class Phase1IdentityAndAccountsTest {
 
     @Autowired MockMvc mockMvc;
-    @Autowired com.moataz.paymentwallet.user.UserService userService;
+    @Autowired com.moataz.paymentwallet.user.KycService kycService;
+    @Autowired com.moataz.paymentwallet.user.AppUserRepository userRepository;
 
     private static final String VALID_USER = """
             {
@@ -132,7 +133,7 @@ class Phase1IdentityAndAccountsTest {
     }
 
     @Test
-    @DisplayName("a PENDING user cannot open an account until an administrator activates them")
+    @DisplayName("a PENDING user cannot open an account until compliance verifies them")
     void pendingUserCannotOpenAnAccount() throws Exception {
         String body = mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -152,7 +153,7 @@ class Phase1IdentityAndAccountsTest {
                .andExpect(jsonPath("$.detail").value(
                        org.hamcrest.Matchers.containsString("identity must be verified")));
 
-        userService.activate(java.util.UUID.fromString(publicId));
+        verifyAndActivate(publicId);
 
         mockMvc.perform(post("/api/accounts")
                         .with(asUser(publicId))
@@ -194,8 +195,25 @@ class Phase1IdentityAndAccountsTest {
                .andExpect(status().isCreated())
                .andReturn().getResponse().getContentAsString();
         String publicId = JsonPath.read(body, "$.publicId");
-        // registration leaves the user PENDING; activation is what unlocks accounts and money
-        userService.activate(java.util.UUID.fromString(publicId));
+        // registration leaves the user PENDING; a verified identity is what unlocks money
+        verifyAndActivate(publicId);
         return publicId;
+    }
+
+    private void verifyAndActivate(String publicId) {
+        java.util.UUID id = java.util.UUID.fromString(publicId);
+        kycService.submit(id, new com.moataz.paymentwallet.user.dto.KycSubmissionRequest(
+                nationalId(), java.time.LocalDate.of(1990, 1, 1), "Cairo"));
+        kycService.approve(id, com.moataz.paymentwallet.user.KycTier.VERIFIED, "test", reviewer());
+    }
+
+    private java.util.UUID reviewer() {
+        return userRepository.findByEmailWithRoles("compliance@paymentwallet.local")
+                .orElseThrow(() -> new IllegalStateException("compliance staff not seeded"))
+                .getPublicId();
+    }
+
+    private static String nationalId() {
+        return String.valueOf(System.nanoTime() % 100000000000000L);
     }
 }

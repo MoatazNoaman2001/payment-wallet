@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Verify identity · Payment Wallet</title>
+    <link rel="stylesheet" th:href="@{/css/wallet.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: topbar('verify')}"></div>
+
+<div class="wrap narrow">
+
+    <div class="alert alert-ok" th:if="${param.submitted}" style="margin-bottom:16px">
+        Details received. Compliance will review them.
+    </div>
+
+    <h1 class="section-title">Verify your identity</h1>
+    <p class="muted" style="margin:0 0 20px">
+        A wallet may not hold or move money for someone the bank has not identified. Submit your
+        details once; compliance decides which tier you are verified at, and the tier sets how much
+        you may send per day.
+    </p>
+
+    <div class="kyc-state" th:if="${kyc != null}">
+        <div class="kyc-head">
+            <span class="badge" th:classappend="${kyc.reviewed} ? 'active'"
+                  th:text="${kyc.reviewed} ? ${kyc.tier} + ' · verified' : 'Awaiting review'">Awaiting review</span>
+            <span class="muted" th:if="${kyc.reviewed and kyc.dailyCeiling != null}">
+                sends up to
+                <strong th:text="${#numbers.formatDecimal(kyc.dailyCeiling, 1, 'COMMA', 0, 'POINT')}">50,000</strong>
+                per day
+            </span>
+            <span class="muted" th:if="${kyc.reviewed and kyc.dailyCeiling == null}">no daily ceiling</span>
+        </div>
+        <dl class="kv">
+            <dt>National id</dt><dd class="mono" th:text="${kyc.nationalId}">**********1234</dd>
+            <dt>Date of birth</dt><dd th:text="${#temporals.format(kyc.dateOfBirth, 'd MMM yyyy')}">1 Jan 1990</dd>
+            <dt>Address</dt><dd th:text="${kyc.address} ?: '—'">—</dd>
+            <dt>Submitted</dt>
+            <dd th:text="${#temporals.format(kyc.submittedAt, 'd MMM yyyy, HH:mm')}">1 Jan 2026</dd>
+            <dt th:if="${kyc.reviewed}">Verified by</dt>
+            <dd th:if="${kyc.reviewed}" th:text="${kyc.reviewedBy} ?: 'compliance'">Compliance</dd>
+        </dl>
+    </div>
+
+    <div class="empty" th:if="${kyc == null}" style="margin-bottom:20px">
+        No identity details on file yet.
+    </div>
+
+    <form th:action="@{/verify}" th:object="${form}" method="post" novalidate
+          th:unless="${kyc != null and kyc.reviewed}">
+        <p class="field-error" th:if="${#fields.hasGlobalErrors()}" th:each="e : ${#fields.globalErrors()}"
+           th:text="${e}">error</p>
+
+        <div class="field">
+            <label for="nationalId">National id</label>
+            <input type="text" id="nationalId" th:field="*{nationalId}" inputmode="numeric"
+                   placeholder="29001011234567">
+            <p class="field-error" th:if="${#fields.hasErrors('nationalId')}" th:errors="*{nationalId}">error</p>
+        </div>
+        <div class="field">
+            <label for="dateOfBirth">Date of birth</label>
+            <input type="date" id="dateOfBirth" th:field="*{dateOfBirth}">
+            <p class="field-error" th:if="${#fields.hasErrors('dateOfBirth')}" th:errors="*{dateOfBirth}">error</p>
+        </div>
+        <div class="field">
+            <label for="address">Address <span class="muted">(optional)</span></label>
+            <input type="text" id="address" th:field="*{address}" placeholder="12 Nile St, Giza">
+            <p class="field-error" th:if="${#fields.hasErrors('address')}" th:errors="*{address}">error</p>
+        </div>
+        <button type="submit" class="btn" th:text="${kyc == null} ? 'Submit for review' : 'Update details'">
+            Submit for review
+        </button>
+        <p class="hint" th:if="${kyc != null}">
+            You can correct these until compliance reviews them.
+        </p>
+    </form>
+
+    <p class="hint" th:if="${kyc != null and kyc.reviewed}">
+        Verified details cannot be edited here. Ask compliance if something has changed.
+    </p>
+
+</div>
+
+</body>
+</html>

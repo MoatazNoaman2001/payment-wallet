@@ -396,3 +396,37 @@ table.statement td.col-right { white-space: nowrap; }
     table.statement .c-ref, table.statement th:nth-child(2), table.statement td:nth-child(2),
     table.statement col.c-ref { display: none; }
 }
+
+/* ---------- identity / KYC ---------- */
+.wrap.narrow { max-width: 560px; }
+
+.page-head {
+    display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;
+}
+.page-head > :first-child { flex: 1; min-width: 0; }
+.page-head .btn { flex-shrink: 0; }
+
+.section-title.small {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--muted-foreground); margin: 24px 0 10px;
+}
+
+.kyc-state {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--card); padding: 16px 18px;
+}
+.kyc-head {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+
+.kv { display: grid; grid-template-columns: 130px 1fr; gap: 8px 16px; margin: 0; font-size: 13px; }
+.kv dt { color: var(--muted-foreground); }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+
+.filters .field.grow { flex: 1; min-width: 160px; }
+
+@media (max-width: 560px) {
+    .kv { grid-template-columns: 1fr; gap: 2px 0; }
+    .kv dd { margin-bottom: 8px; }
+}

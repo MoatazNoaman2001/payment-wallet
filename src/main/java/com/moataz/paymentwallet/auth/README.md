@@ -156,7 +156,9 @@ staff** who may move money (`TELLER`, `SUPERVISOR`, `ADMIN`), and **read-only st
 |---|---|---|---|
 | `POST /api/users`, `/api/auth/login` | public | public | public |
 | `GET /api/users/{publicId}` | self only | self only | anyone |
-| `POST /api/users/{id}/activation` | ✗ | ✗ | ✓ — a KYC decision |
+| `POST /api/users/counter` (register a walk-in) | ✗ | ✓ | ✓ |
+| `PUT /api/users/{id}/kyc` (submit identity) | self only | for any customer | any |
+| `POST /api/users/{id}/kyc-review` | ✗ | ✗ | ✓ — with `COMPLIANCE` |
 | `POST /api/accounts` for self | ✓ | ✓ | ✓ |
 | `POST /api/accounts` for another user | ✗ | ✓ | ✓ |
 | `GET /api/accounts` (no owner given) | own accounts | **every** account | **every** account |
@@ -181,11 +183,13 @@ into their own wallet is the textbook internal fraud, so the check is on identit
 than on role: if the actor owns the account, the counter refuses and tells them to ask a
 colleague. A colleague serving the same account is fine.
 
-**Activation gates money, not just the UI.** Registration creates a `PENDING` user. Until an
-administrator activates them they cannot open an account, cannot send, and cannot receive —
-a teller depositing into their account is refused too, because the holder is unverified.
-The check is on the account holder rather than the caller, so it protects the recipient side
-as well.
+**Activation gates money, not just the UI.** Registration creates a `PENDING` user. Until
+compliance verifies them they cannot open an account, cannot send, and cannot receive — a
+teller depositing into their account is refused too, because the holder is unverified. The
+check is on the account holder rather than the caller, so it protects the recipient side as
+well. A teller may key a walk-in customer in; deciding that the customer is who they claim to
+be belongs to `COMPLIANCE`, beside `canFreeze` and for the same reason. See
+[the user module](../user/README.md) for the tiers and what each one allows.
 
 **Freezing is a compliance power, not an operational one.** A teller cannot freeze an
 account and a frozen account can neither send nor receive — the transfer engine already

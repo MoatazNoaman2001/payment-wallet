@@ -7,6 +7,8 @@ import com.moataz.paymentwallet.common.error.BusinessRuleException;
 import com.moataz.paymentwallet.transfer.dto.TransferRequest;
 import com.moataz.paymentwallet.transfer.dto.TransferResponse;
 import com.moataz.paymentwallet.user.AppUser;
+import com.moataz.paymentwallet.user.KycLimits;
+import com.moataz.paymentwallet.user.KycTier;
 import com.moataz.paymentwallet.user.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -24,6 +26,7 @@ class TransferSupport {
     private final TransferRepository transferRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
     private final OutboxEventRepository outboxEventRepository;
+    private final KycLimits kycLimits;
 
     TransferResponse post(TransferRequest request, String idempotencyKey, UUID actorPublicId,
                           AppUser initiator, Account source, Account dest) {
@@ -89,14 +92,38 @@ class TransferSupport {
             throw new BusinessRuleException("Insufficient funds: balance "
                     + source.getBalance() + ", requested " + request.amount());
         }
-        if (source.getDailyLimit() != null) {
+        DailyCap cap = dailyCap(source);
+        if (cap != null) {
             OffsetDateTime startOfDay = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
             BigDecimal spentToday = transferRepository.sumPostedSince(source.getId(), startOfDay);
-            if (spentToday.add(request.amount()).compareTo(source.getDailyLimit()) > 0) {
-                throw new BusinessRuleException("Daily limit exceeded: "
-                        + spentToday + " already sent, limit " + source.getDailyLimit());
+            if (spentToday.add(request.amount()).compareTo(cap.amount()) > 0) {
+                throw new BusinessRuleException("Daily limit exceeded: " + spentToday
+                        + " already sent, limit " + cap.amount() + " (" + cap.reason() + ")");
             }
         }
+    }
+
+    /**
+     * How much may leave today: the tighter of what the account was opened with and what the
+     * holder's KYC tier allows. Settlement accounts are infrastructure and have neither.
+     */
+    private DailyCap dailyCap(Account source) {
+        if (source.getType() == AccountType.SYSTEM) {
+            return null;
+        }
+        DailyCap cap = source.getDailyLimit() == null
+                ? null
+                : new DailyCap(source.getDailyLimit(), "account limit");
+
+        KycTier tier = kycLimits.effectiveTier(source.getUser());
+        BigDecimal ceiling = kycLimits.ceilingFor(tier).orElse(null);
+        if (ceiling != null && (cap == null || ceiling.compareTo(cap.amount()) < 0)) {
+            cap = new DailyCap(ceiling, tier + " verification");
+        }
+        return cap;
+    }
+
+    private record DailyCap(BigDecimal amount, String reason) {
     }
 
     private void requireActiveHolder(Account account, String side) {

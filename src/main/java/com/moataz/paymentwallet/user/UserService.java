@@ -2,9 +2,12 @@ package com.moataz.paymentwallet.user;
 
 import com.moataz.paymentwallet.common.error.DuplicateResourceException;
 import com.moataz.paymentwallet.common.error.NotFoundException;
+import com.moataz.paymentwallet.user.dto.CounterRegistrationRequest;
 import com.moataz.paymentwallet.user.dto.RegisterUserRequest;
 import com.moataz.paymentwallet.user.dto.UserResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,9 +20,15 @@ public class UserService {
     private final AppUserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final KycService kycService;
 
     @Transactional
     public UserResponse register(RegisterUserRequest request) {
+        return register(request, null);
+    }
+
+    @Transactional
+    public UserResponse register(RegisterUserRequest request, UUID registrarPublicId) {
         String email = normaliseEmail(request.email());
         String phone = request.phone().trim();
 
@@ -41,9 +50,24 @@ public class UserService {
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setStatus(UserStatus.PENDING);
         user.addRole(customer);
+        if (registrarPublicId != null) {
+            user.setRegisteredBy(userRepository.findByPublicId(registrarPublicId)
+                    .orElseThrow(() -> new NotFoundException("No user with id " + registrarPublicId)));
+        }
 
         AppUser saved = userRepository.save(user);
         return UserResponse.from(saved);
+    }
+
+    /**
+     * A walk-in customer: the employee keys in the identity details they just checked, so the
+     * registration and the KYC submission are one act and share one transaction.
+     */
+    @Transactional
+    public UserResponse registerAtCounter(CounterRegistrationRequest request, UUID actorPublicId) {
+        UserResponse created = register(request.user(), actorPublicId);
+        kycService.submit(created.publicId(), request.kyc());
+        return created;
     }
 
     public static String normaliseEmail(String email) {
@@ -51,8 +75,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<com.moataz.paymentwallet.user.dto.UserRow> list(
-            org.springframework.data.domain.Pageable pageable) {
+    public Page<com.moataz.paymentwallet.user.dto.UserRow> list(Pageable pageable) {
         return userRepository.findUserRows(pageable);
     }
 
@@ -63,11 +86,8 @@ public class UserService {
         return UserResponse.from(user);
     }
 
-    @Transactional
-    public UserResponse activate(UUID publicId) {
-        AppUser user = userRepository.findByPublicId(publicId)
-                .orElseThrow(() -> new NotFoundException("No user with id " + publicId));
-        user.setStatus(UserStatus.ACTIVE);
-        return UserResponse.from(user);
+    @Transactional(readOnly = true)
+    public String registrarNameOf(UUID publicId) {
+        return userRepository.findRegistrarName(publicId).orElse(null);
     }
 }

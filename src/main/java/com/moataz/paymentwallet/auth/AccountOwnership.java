@@ -59,6 +59,23 @@ public class AccountOwnership {
         return hasAnyRole(authentication, Set.of(Role.COMPLIANCE, Role.ADMIN));
     }
 
+    /**
+     * Accepting someone's identity is a compliance decision, not a systems-administration one.
+     * A teller may key a walk-in customer in; they may not decide that the customer is who
+     * they claim to be.
+     */
+    public boolean canApproveIdentity(Authentication authentication) {
+        return hasAnyRole(authentication, Set.of(Role.COMPLIANCE, Role.ADMIN));
+    }
+
+    /**
+     * Seeing a customer file is not the same as acting on one. Compliance and audit need to
+     * read every profile in order to do their job; they still cannot work the counter.
+     */
+    public boolean canBrowseCustomers(Authentication authentication) {
+        return isStaff(authentication) || hasAnyRole(authentication, READ_ONLY_STAFF);
+    }
+
     public boolean isStaff(Authentication authentication) {
         return hasAnyRole(authentication, OPERATIONAL_STAFF);
     }

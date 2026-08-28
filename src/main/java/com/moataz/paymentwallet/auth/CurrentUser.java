@@ -40,6 +40,15 @@ public class CurrentUser {
         return hasRole("ROLE_COMPLIANCE") || hasRole("ROLE_ADMIN");
     }
 
+    public boolean canBrowseCustomers() {
+        return isStaff() || hasRole("ROLE_SUPERVISOR") || hasRole("ROLE_COMPLIANCE")
+                || hasRole("ROLE_AUDITOR") || hasRole("ROLE_OPS");
+    }
+
+    public boolean canApproveIdentity() {
+        return hasRole("ROLE_COMPLIANCE") || hasRole("ROLE_ADMIN");
+    }
+
     public boolean isAdmin() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null && auth.getAuthorities().stream()

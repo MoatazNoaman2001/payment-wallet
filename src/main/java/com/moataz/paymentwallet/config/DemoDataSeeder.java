@@ -10,7 +10,10 @@ import com.moataz.paymentwallet.transfer.dto.CashRequest;
 import com.moataz.paymentwallet.transfer.dto.TransferRequest;
 import com.moataz.paymentwallet.transfer.dto.TransferResponse;
 import com.moataz.paymentwallet.user.AppUserRepository;
+import com.moataz.paymentwallet.user.KycService;
+import com.moataz.paymentwallet.user.KycTier;
 import com.moataz.paymentwallet.user.UserService;
+import com.moataz.paymentwallet.user.dto.KycSubmissionRequest;
 import com.moataz.paymentwallet.user.dto.RegisterUserRequest;
 import com.moataz.paymentwallet.user.dto.UserResponse;
 import lombok.RequiredArgsConstructor;
@@ -19,14 +22,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 @Component
+@Order(2)
 @ConditionalOnProperty(name = "demo.seed", havingValue = "true")
 @RequiredArgsConstructor
 public class DemoDataSeeder implements ApplicationRunner {
@@ -37,6 +43,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final AccountService accountService;
     private final CashService cashService;
     private final TransferService transferService;
+    private final KycService kycService;
     private final AppUserRepository userRepository;
 
     @Override
@@ -46,14 +53,17 @@ public class DemoDataSeeder implements ApplicationRunner {
             return;
         }
 
-        UserResponse mona = register("mona@demo.local", "+201000000001", "Mona Ali");
-        UserResponse ahmed = register("ahmed@demo.local", "+201000000002", "Ahmed Hassan");
+        UUID compliance = staffPublicId("compliance@paymentwallet.local");
+
+        UserResponse mona = register("mona@demo.local", "+201000000001", "Mona Ali",
+                "29001011234567", LocalDate.of(1990, 1, 1), compliance);
+        UserResponse ahmed = register("ahmed@demo.local", "+201000000002", "Ahmed Hassan",
+                "28805152345678", LocalDate.of(1988, 5, 15), compliance);
 
         String monaWallet = openWallet(mona.publicId());
         String ahmedWallet = openWallet(ahmed.publicId());
 
-        UUID staff = userRepository.findByEmailWithRoles("teller@paymentwallet.local")
-                .map(u -> u.getPublicId()).orElse(mona.publicId());
+        UUID staff = staffPublicId("teller@paymentwallet.local");
 
         cashService.deposit(monaWallet, staff,
                 new CashRequest(new BigDecimal("5000.0000"), "Salary payout"), key());
@@ -79,9 +89,18 @@ public class DemoDataSeeder implements ApplicationRunner {
                 """, PASSWORD, monaWallet, PASSWORD, ahmedWallet);
     }
 
-    private UserResponse register(String email, String phone, String fullName) {
+    private UserResponse register(String email, String phone, String fullName,
+                                  String nationalId, LocalDate dateOfBirth, UUID reviewer) {
         UserResponse user = userService.register(new RegisterUserRequest(email, phone, PASSWORD, fullName));
-        return userService.activate(user.publicId());
+        kycService.submit(user.publicId(),
+                new KycSubmissionRequest(nationalId, dateOfBirth, "Cairo, Egypt"));
+        return kycService.approve(user.publicId(), KycTier.VERIFIED, "demo seed", reviewer);
+    }
+
+    private UUID staffPublicId(String email) {
+        return userRepository.findByEmailWithRoles(email)
+                .orElseThrow(() -> new IllegalStateException("Staff account missing: " + email))
+                .getPublicId();
     }
 
     private String openWallet(UUID owner) {

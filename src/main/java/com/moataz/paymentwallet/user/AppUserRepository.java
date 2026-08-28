@@ -29,6 +29,9 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
            countQuery = "select count(u) from AppUser u")
     Page<UserRow> findUserRows(Pageable pageable);
 
+    @Query("select r.fullName from AppUser u join u.registeredBy r where u.publicId = :publicId")
+    Optional<String> findRegistrarName(UUID publicId);
+
     boolean existsByEmail(String email);
 
     boolean existsByPhone(String phone);

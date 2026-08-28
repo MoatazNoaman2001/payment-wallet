@@ -107,8 +107,21 @@ supervisor must step in. Customers cannot deposit into their own accounts at all
 is triggered from outside the system, never by the customer asserting it.
 
 **Activation is a gate, not a label.** A registered user starts `PENDING` and cannot open an
-account or move money — as sender or as recipient — until an administrator activates them.
-Without that check the KYC flow would be decorative: a status column nobody consults.
+account or move money — as sender or as recipient — until they have been verified. Without
+that check the KYC flow would be decorative: a status column nobody consults.
+
+**Being registered is not being believed.** Anyone may register themselves, and a teller may
+register a walk-in at the counter with the id they just checked; `app_user.registered_by`
+records which. Neither act verifies anybody. Accepting an identity belongs to `COMPLIANCE`,
+beside freezing and for the same reason: it is a judgement about a person, not a systems task.
+A teller who gathers the evidence may not also declare it good.
+
+**How much you may move is a function of how well you are known.** Verification has tiers —
+`BASIC`, `VERIFIED`, `ENHANCED` — and each carries a daily ceiling. The transfer engine
+resolves the account's own limit and the holder's tier together and applies the tighter one,
+naming which rule stopped it: *limit 5000 (BASIC verification)* reads very differently from
+*limit 100 (account limit)*. A missing profile resolves to `BASIC`, so a gap in the data
+produces a customer who is too restricted, never one who is too free.
 
 **A frozen account is frozen everywhere.** Compliance can freeze an account, and the
 transfer engine refuses it as source or destination without a single extra check — it
@@ -176,7 +189,8 @@ outbox_event   fx_rate   beneficiary
 
 | Table | Role |
 |---|---|
-| `app_user`, `role`, `user_role`, `kyc_profile` | identity, roles, KYC |
+| `app_user`, `role`, `user_role` | identity, roles, and who registered whom |
+| `kyc_profile` | identity evidence, its review, and the tier that sets the daily ceiling |
 | `currency`, `account`, `card`, `beneficiary` | money containers |
 | `transfer` | the command: who moved what, where, and its status |
 | `ledger_entry` | the truth: immutable debit/credit legs |
@@ -198,9 +212,11 @@ statement, and an operations page. It is responsive and shares the API's authori
 |---|---|---|---|
 | `GET`/`POST` | `/login` | sign-in page and form | public |
 | `GET`/`POST` | `/register` | self-service sign-up with inline validation | public |
-| `GET` | `/users` (HTML) | customer list with status and account counts | staff |
-| `GET` | `/users/{publicId}` (HTML) | profile, roles, accounts, open-account form | self or staff |
-| `POST` | `/users/{publicId}/activate` | complete KYC activation | **admin** |
+| `GET` | `/users` (HTML) | customer list with status and account counts | staff, compliance, audit |
+| `GET`/`POST` | `/users/new` (HTML) | register a walk-in customer at the counter | staff |
+| `GET` | `/users/{publicId}` (HTML) | profile, identity file, accounts | self, staff, compliance |
+| `GET`/`POST` | `/verify` (HTML) | submit your own identity details | authenticated |
+| `POST` | `/users/{publicId}/kyc-review` | verify an identity at a tier | **compliance** |
 | `GET` | `/accounts` (HTML) | own accounts, or every account for staff | authenticated |
 | `GET` | `/accounts/{n}/statement` (HTML) | paginated, filterable statement | owner or staff |
 | `GET`/`POST` | `/transfer` (HTML) | send money between accounts | owner of the source |
@@ -212,8 +228,11 @@ statement, and an operations page. It is responsive and shares the API's authori
 | `POST` | `/api/auth/logout` | revoke every refresh token | authenticated |
 | `GET` | `/api/auth/me` | the authenticated identity | authenticated |
 | `POST` | `/api/users` | register a user (PENDING, ROLE_CUSTOMER) | public |
+| `POST` | `/api/users/counter` | register a walk-in plus the identity checked | staff |
 | `GET` | `/api/users/{publicId}` | fetch a user | self or admin |
-| `POST` | `/api/users/{publicId}/activation` | activate after KYC | **admin** |
+| `PUT` | `/api/users/{publicId}/kyc` | submit identity details | self or staff |
+| `GET` | `/api/users/{publicId}/kyc` | read the identity file (national id masked) | self or staff |
+| `POST` | `/api/users/{publicId}/kyc-review` | verify at a tier and activate | **compliance** |
 | `POST` | `/api/accounts` | open an account; `ownerPublicId` for another user needs staff | authenticated |
 | `GET` | `/api/accounts/{accountNumber}` | fetch an account | owner |
 | `GET` | `/api/accounts` | paginated; staff see every account, or one customer's via `ownerPublicId` | authenticated |
@@ -335,6 +354,7 @@ than defaulted.
 | `Phase5ReliabilityTest` | drift detection, publish-once semantics, batch draining |
 | `Phase5ReversalTest` | compensating reversal, idempotency, state machine, refusal when funds are spent |
 | `Phase4SecurityTest` | 401 anonymous, 403 on someone else's account, refused transfer leaves balances untouched, refresh reuse detection |
+| `KycAndOnboardingTest` | self-service vs counter registration, who may verify, tier ceilings, masked national id |
 
 ---
 
@@ -349,6 +369,10 @@ measured numbers.
 security design: the three separate questions (authentication, authorization, ownership),
 why the refresh token is opaque and stored hashed, how reuse detection revokes a token
 family, and the XSS-versus-CSRF trade that comes with cookie delivery.
+
+[`user/README.md`](src/main/java/com/moataz/paymentwallet/user/README.md) covers onboarding:
+the two ways into the system, why registration is the one unauthenticated write, the
+submit → review → activate lifecycle, and how a verification tier turns into a daily ceiling.
 
 [`statement/README.md`](src/main/java/com/moataz/paymentwallet/statement/README.md)
 covers the query side: pagination and its scaling limits, Specifications for dynamic
@@ -372,6 +396,7 @@ joins, and the four kinds of JPA projection.
 - [x] Thymeleaf page: statement with filters and pagination
 - [x] Thymeleaf: navigation, staff account list, operations page, responsive layout
 - [x] Thymeleaf: registration, customer list, profile with activation and account opening
+- [x] KYC: identity submission, compliance review, tiered daily ceilings, counter registration
 - [x] Thymeleaf page: transfer form with browser-safe idempotency
 - [x] Thymeleaf page: teller cash desk (open accounts, deposit, withdraw)
 - [ ] Testcontainers, metrics

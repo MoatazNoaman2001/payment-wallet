@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Register a customer · Payment Wallet</title>
+    <link rel="stylesheet" th:href="@{/css/wallet.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: topbar('users')}"></div>
+
+<div class="wrap narrow">
+    <a class="back" th:href="@{/users}">← Customers</a>
+
+    <h1 class="section-title">Register a customer</h1>
+    <p class="muted" style="margin:0 0 20px">
+        For someone standing at the counter. You are recorded as the employee who registered them.
+        They stay PENDING until compliance verifies the identity you checked.
+    </p>
+
+    <form th:action="@{/users/new}" th:object="${form}" method="post" novalidate>
+        <p class="field-error" th:if="${#fields.hasGlobalErrors()}" th:each="e : ${#fields.globalErrors()}"
+           th:text="${e}">error</p>
+
+        <h2 class="section-title small">Person</h2>
+        <div class="field">
+            <label for="fullName">Full name</label>
+            <input type="text" id="fullName" th:field="*{fullName}" placeholder="Mona Ali">
+            <p class="field-error" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}">error</p>
+        </div>
+        <div class="field">
+            <label for="email">Email</label>
+            <input type="text" id="email" th:field="*{email}" placeholder="mona@example.com">
+            <p class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">error</p>
+        </div>
+        <div class="field">
+            <label for="phone">Phone</label>
+            <input type="text" id="phone" th:field="*{phone}" placeholder="+201234567890">
+            <p class="field-error" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}">error</p>
+        </div>
+        <div class="field">
+            <label for="password">Temporary password</label>
+            <input type="text" id="password" th:field="*{password}" placeholder="at least 8 characters">
+            <p class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">error</p>
+        </div>
+
+        <h2 class="section-title small">Identity you checked</h2>
+        <div class="field">
+            <label for="nationalId">National id</label>
+            <input type="text" id="nationalId" th:field="*{nationalId}" inputmode="numeric"
+                   placeholder="29001011234567">
+            <p class="field-error" th:if="${#fields.hasErrors('nationalId')}" th:errors="*{nationalId}">error</p>
+        </div>
+        <div class="field">
+            <label for="dateOfBirth">Date of birth</label>
+            <input type="date" id="dateOfBirth" th:field="*{dateOfBirth}">
+            <p class="field-error" th:if="${#fields.hasErrors('dateOfBirth')}" th:errors="*{dateOfBirth}">error</p>
+        </div>
+        <div class="field">
+            <label for="address">Address <span class="muted">(optional)</span></label>
+            <input type="text" id="address" th:field="*{address}" placeholder="12 Nile St, Giza">
+            <p class="field-error" th:if="${#fields.hasErrors('address')}" th:errors="*{address}">error</p>
+        </div>
+
+        <button type="submit" class="btn">Register customer</button>
+    </form>
+</div>
+
+</body>
+</html>
