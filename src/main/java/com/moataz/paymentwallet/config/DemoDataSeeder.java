@@ -80,7 +80,8 @@ public class DemoDataSeeder implements ApplicationRunner {
     }
 
     private UserResponse register(String email, String phone, String fullName) {
-        return userService.register(new RegisterUserRequest(email, phone, PASSWORD, fullName));
+        UserResponse user = userService.register(new RegisterUserRequest(email, phone, PASSWORD, fullName));
+        return userService.activate(user.publicId());
     }
 
     private String openWallet(UUID owner) {

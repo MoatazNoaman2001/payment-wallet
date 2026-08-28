@@ -28,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class Phase1IdentityAndAccountsTest {
 
     @Autowired MockMvc mockMvc;
+    @Autowired com.moataz.paymentwallet.user.UserService userService;
 
     private static final String VALID_USER = """
             {
@@ -131,6 +132,38 @@ class Phase1IdentityAndAccountsTest {
     }
 
     @Test
+    @DisplayName("a PENDING user cannot open an account until an administrator activates them")
+    void pendingUserCannotOpenAnAccount() throws Exception {
+        String body = mockMvc.perform(post("/api/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_USER))
+               .andExpect(status().isCreated())
+               .andExpect(jsonPath("$.status").value("PENDING"))
+               .andReturn().getResponse().getContentAsString();
+        String publicId = JsonPath.read(body, "$.publicId");
+
+        mockMvc.perform(post("/api/accounts")
+                        .with(asUser(publicId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currencyCode": "EGP", "type": "WALLET"}
+                                """))
+               .andExpect(status().isUnprocessableEntity())
+               .andExpect(jsonPath("$.detail").value(
+                       org.hamcrest.Matchers.containsString("identity must be verified")));
+
+        userService.activate(java.util.UUID.fromString(publicId));
+
+        mockMvc.perform(post("/api/accounts")
+                        .with(asUser(publicId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currencyCode": "EGP", "type": "WALLET"}
+                                """))
+               .andExpect(status().isCreated());
+    }
+
+    @Test
     @DisplayName("an unknown currency is a 404 ProblemDetail")
     void rejectsUnknownCurrency() throws Exception {
         String publicId = registerAndGetPublicId();
@@ -160,6 +193,9 @@ class Phase1IdentityAndAccountsTest {
                         .content(VALID_USER))
                .andExpect(status().isCreated())
                .andReturn().getResponse().getContentAsString();
-        return JsonPath.read(body, "$.publicId");
+        String publicId = JsonPath.read(body, "$.publicId");
+        // registration leaves the user PENDING; activation is what unlocks accounts and money
+        userService.activate(java.util.UUID.fromString(publicId));
+        return publicId;
     }
 }

@@ -48,8 +48,9 @@ public class AccountService {
                     "SYSTEM settlement accounts cannot be opened through the API: they may hold a "
                     + "negative balance, so they are created by migration alongside a currency");
         }
-        if (owner.getStatus() == UserStatus.SUSPENDED || owner.getStatus() == UserStatus.CLOSED) {
-            throw new BusinessRuleException("Cannot open an account for a " + owner.getStatus() + " user");
+        if (owner.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessRuleException("Cannot open an account for a " + owner.getStatus()
+                    + " user: identity must be verified first");
         }
 
         Currency currency = currencyRepository.findById(request.currencyCode())

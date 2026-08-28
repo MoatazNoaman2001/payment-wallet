@@ -503,6 +503,7 @@ class WebPagesTest {
         user.setPhone("+9" + (System.nanoTime() % 1000000000000L));
         user.setFullName(name);
         user.setPasswordHash(passwordEncoder.encode(name + "-pass-1234"));
+        user.setStatus(com.moataz.paymentwallet.user.UserStatus.ACTIVE);
         user.addRole(roleRepository.findByName(Role.CUSTOMER).orElseThrow());
         AppUser saved = userRepository.saveAndFlush(user);
         userIds.add(saved.getId());

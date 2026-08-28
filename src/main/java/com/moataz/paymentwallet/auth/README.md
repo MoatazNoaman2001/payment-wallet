@@ -181,6 +181,12 @@ into their own wallet is the textbook internal fraud, so the check is on identit
 than on role: if the actor owns the account, the counter refuses and tells them to ask a
 colleague. A colleague serving the same account is fine.
 
+**Activation gates money, not just the UI.** Registration creates a `PENDING` user. Until an
+administrator activates them they cannot open an account, cannot send, and cannot receive —
+a teller depositing into their account is refused too, because the holder is unverified.
+The check is on the account holder rather than the caller, so it protects the recipient side
+as well.
+
 **Freezing is a compliance power, not an operational one.** A teller cannot freeze an
 account and a frozen account can neither send nor receive — the transfer engine already
 refused any account that is not `ACTIVE`, so the freeze needed no change there. Settlement

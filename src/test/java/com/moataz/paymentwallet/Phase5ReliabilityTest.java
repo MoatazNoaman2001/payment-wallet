@@ -148,6 +148,7 @@ class Phase5ReliabilityTest {
         user.setPhone("+8" + (System.nanoTime() % 1000000000000L));
         user.setFullName(name);
         user.setPasswordHash("x");
+        user.setStatus(com.moataz.paymentwallet.user.UserStatus.ACTIVE);
         user.addRole(roleRepository.findByName(Role.CUSTOMER).orElseThrow());
         AppUser saved = userRepository.saveAndFlush(user);
         userIds.add(saved.getId());

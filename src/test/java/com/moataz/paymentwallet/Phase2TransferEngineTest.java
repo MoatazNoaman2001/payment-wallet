@@ -196,6 +196,7 @@ class Phase2TransferEngineTest {
         user.setPhone("+2" + (System.nanoTime() % 1000000000000L));
         user.setFullName(name);
         user.setPasswordHash("x");
+        user.setStatus(com.moataz.paymentwallet.user.UserStatus.ACTIVE);
         user.addRole(roleRepository.findByName(Role.CUSTOMER).orElseThrow());
         AppUser saved = userRepository.saveAndFlush(user);
         createdUserIds.add(saved.getId());

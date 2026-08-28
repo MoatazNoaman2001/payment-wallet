@@ -7,6 +7,7 @@ import com.moataz.paymentwallet.common.error.BusinessRuleException;
 import com.moataz.paymentwallet.transfer.dto.TransferRequest;
 import com.moataz.paymentwallet.transfer.dto.TransferResponse;
 import com.moataz.paymentwallet.user.AppUser;
+import com.moataz.paymentwallet.user.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
@@ -67,6 +68,8 @@ class TransferSupport {
     }
 
     private void validate(TransferRequest request, Account source, Account dest) {
+        requireActiveHolder(source, "Sender");
+        requireActiveHolder(dest, "Recipient");
         if (source.getStatus() != AccountStatus.ACTIVE) {
             throw new BusinessRuleException("Source account is " + source.getStatus());
         }
@@ -93,6 +96,14 @@ class TransferSupport {
                 throw new BusinessRuleException("Daily limit exceeded: "
                         + spentToday + " already sent, limit " + source.getDailyLimit());
             }
+        }
+    }
+
+    private void requireActiveHolder(Account account, String side) {
+        UserStatus status = account.getUser().getStatus();
+        if (status != UserStatus.ACTIVE) {
+            throw new BusinessRuleException(side + " is not an active account holder ("
+                    + status + "): identity must be verified before money can move");
         }
     }
 
