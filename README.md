@@ -106,6 +106,10 @@ textbook internal fraud — and may only hand over up to a configured counter li
 supervisor must step in. Customers cannot deposit into their own accounts at all: a deposit
 is triggered from outside the system, never by the customer asserting it.
 
+**A frozen account is frozen everywhere.** Compliance can freeze an account, and the
+transfer engine refuses it as source or destination without a single extra check — it
+already required `ACTIVE`. Who froze it, when and why are stored on the row.
+
 **A browser form cannot double-spend.** The transfer page embeds a one-time idempotency key
 generated when the form is rendered, so a double click or a post-submit refresh reuses the
 same key and the engine returns the original transfer instead of moving money again — the

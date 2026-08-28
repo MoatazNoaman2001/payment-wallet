@@ -52,6 +52,24 @@ public class AccountController {
         return accountService.findByNumber(accountNumber);
     }
 
+    @Operation(summary = "Freeze an account",
+               description = "Compliance action. A frozen account can neither send nor receive; "
+                           + "settlement accounts cannot be frozen.")
+    @PreAuthorize("@ownership.canFreeze(authentication)")
+    @PostMapping("/{accountNumber}/freeze")
+    public AccountResponse freeze(@PathVariable String accountNumber,
+                                  @RequestParam(required = false) String reason) {
+        return accountService.freeze(accountNumber, reason, currentUser.publicId());
+    }
+
+    @Operation(summary = "Lift a freeze", description = "Compliance action.")
+    @PreAuthorize("@ownership.canFreeze(authentication)")
+    @PostMapping("/{accountNumber}/unfreeze")
+    public AccountResponse unfreeze(@PathVariable String accountNumber,
+                                    @RequestParam(required = false) String reason) {
+        return accountService.unfreeze(accountNumber, reason, currentUser.publicId());
+    }
+
     @Operation(summary = "List accounts",
                description = "Paginated. A customer always sees their own accounts. Staff may pass "
                            + "ownerPublicId to scope to one customer, or omit it to list every account.")

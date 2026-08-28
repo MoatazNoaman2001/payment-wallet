@@ -52,6 +52,7 @@ class Phase4SecurityTest {
     private String aliceToken;
     private String malloryToken;
     private String adminToken;
+    private String complianceToken;
 
     @BeforeEach
     void setUp() {
@@ -63,6 +64,8 @@ class Phase4SecurityTest {
         malloryToken = tokenService.issueAccessToken(mallory);
         adminToken = tokenService.issueAccessToken(
                 userRepository.findByEmailWithRoles("admin@paymentwallet.local").orElseThrow());
+        complianceToken = tokenService.issueAccessToken(
+                userRepository.findByEmailWithRoles("compliance@paymentwallet.local").orElseThrow());
     }
 
     @AfterEach
@@ -216,6 +219,51 @@ class Phase4SecurityTest {
                         .content(forMallory))
                .andExpect(status().isCreated())
                .andExpect(jsonPath("$.ownerPublicId").value(mallory.getPublicId().toString()));
+    }
+
+    @Test
+    @DisplayName("only compliance may freeze, and a frozen account can neither send nor receive")
+    void freezingIsAComplianceAction() throws Exception {
+        mockMvc.perform(post("/api/accounts/{n}/freeze", aliceWallet.getAccountNumber())
+                        .header("Authorization", "Bearer " + aliceToken))
+               .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/accounts/{n}/freeze", aliceWallet.getAccountNumber())
+                        .param("reason", "AML review")
+                        .header("Authorization", "Bearer " + complianceToken))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.status").value("FROZEN"));
+
+        Account malloryWallet = accountRepository.findAllByOwner(mallory.getPublicId()).getFirst();
+        String out = """
+                {"sourceAccountNumber": "%s", "destAccountNumber": "%s",
+                 "amount": 10.0000, "currencyCode": "EGP", "type": "P2P"}
+                """.formatted(aliceWallet.getAccountNumber(), malloryWallet.getAccountNumber());
+
+        mockMvc.perform(post("/api/transfers")
+                        .header("Authorization", "Bearer " + aliceToken)
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType(MediaType.APPLICATION_JSON).content(out))
+               .andExpect(status().isUnprocessableEntity())
+               .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("FROZEN")));
+
+        assertThat(accountRepository.findById(aliceWallet.getId()).orElseThrow().getBalance())
+                .isEqualByComparingTo("500.0000");
+
+        mockMvc.perform(post("/api/accounts/{n}/unfreeze", aliceWallet.getAccountNumber())
+                        .header("Authorization", "Bearer " + complianceToken))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.status").value("ACTIVE"));
+    }
+
+    @Test
+    @DisplayName("a settlement account cannot be frozen")
+    void settlementCannotBeFrozen() throws Exception {
+        mockMvc.perform(post("/api/accounts/{n}/freeze", "SYSTEM-EGP")
+                        .header("Authorization", "Bearer " + complianceToken))
+               .andExpect(status().isUnprocessableEntity())
+               .andExpect(jsonPath("$.detail").value(
+                       org.hamcrest.Matchers.containsString("settlement account cannot be frozen")));
     }
 
     @Test

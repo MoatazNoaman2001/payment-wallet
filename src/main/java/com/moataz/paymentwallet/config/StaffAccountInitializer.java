@@ -53,6 +53,12 @@ public class StaffAccountInitializer implements ApplicationRunner {
     @Value("${staff.auditor.password:auditor12345}")
     private String auditorPassword;
 
+    @Value("${staff.compliance.email:compliance@paymentwallet.local}")
+    private String complianceEmail;
+
+    @Value("${staff.compliance.password:compliance12345}")
+    private String compliancePassword;
+
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
@@ -62,6 +68,8 @@ public class StaffAccountInitializer implements ApplicationRunner {
         ensureStaff(supervisorEmail, "+000000000003", "Demo Supervisor",
                     supervisorPassword, Role.SUPERVISOR);
         ensureStaff(auditorEmail, "+000000000004", "Demo Auditor", auditorPassword, Role.AUDITOR);
+        ensureStaff(complianceEmail, "+000000000005", "Demo Compliance Officer",
+                    compliancePassword, Role.COMPLIANCE);
     }
 
     private void ensureRoles() {

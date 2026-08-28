@@ -11,6 +11,8 @@ import com.moataz.paymentwallet.user.AppUserRepository;
 import com.moataz.paymentwallet.user.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.util.LinkedHashMap;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,6 +31,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AccountService {
+    private static final Logger log = LoggerFactory.getLogger(AccountService.class);
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final AccountRepository accountRepository;
@@ -109,6 +114,42 @@ public class AccountService {
 
         return owners.map(u -> new OwnerAccounts(u.getPublicId(), u.getFullName(), u.getEmail(),
                 u.getStatus().name(), byOwner.getOrDefault(u.getId(), List.of())));
+    }
+
+    @Transactional
+    public AccountResponse freeze(String accountNumber, String reason, UUID actorPublicId) {
+        return changeStatus(accountNumber, AccountStatus.FROZEN, reason, actorPublicId);
+    }
+
+    @Transactional
+    public AccountResponse unfreeze(String accountNumber, String reason, UUID actorPublicId) {
+        return changeStatus(accountNumber, AccountStatus.ACTIVE, reason, actorPublicId);
+    }
+
+    private AccountResponse changeStatus(String accountNumber, AccountStatus target,
+                                         String reason, UUID actorPublicId) {
+        Account account = accountRepository.findWithOwnerByAccountNumber(accountNumber)
+                .orElseThrow(() -> new NotFoundException("No account " + accountNumber));
+
+        if (account.getType() == AccountType.SYSTEM) {
+            throw new BusinessRuleException(
+                    "A settlement account cannot be frozen: every deposit and withdrawal in that "
+                    + "currency would stop");
+        }
+        if (account.getStatus() == AccountStatus.CLOSED) {
+            throw new BusinessRuleException("A closed account cannot change status");
+        }
+        if (account.getStatus() == target) {
+            throw new BusinessRuleException("Account is already " + target);
+        }
+
+        account.setStatus(target);
+        account.setStatusReason(reason);
+        account.setStatusChangedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        account.setStatusChangedBy(userRepository.findByPublicId(actorPublicId).orElse(null));
+
+        log.warn("Account {} set to {} by {} - {}", accountNumber, target, actorPublicId, reason);
+        return AccountResponse.from(account);
     }
 
     @Transactional(readOnly = true)

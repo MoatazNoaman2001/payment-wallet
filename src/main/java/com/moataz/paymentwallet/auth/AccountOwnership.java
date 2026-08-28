@@ -55,6 +55,10 @@ public class AccountOwnership {
                 || publicId != null && publicId.equals(callerPublicId(authentication));
     }
 
+    public boolean canFreeze(Authentication authentication) {
+        return hasAnyRole(authentication, Set.of(Role.COMPLIANCE, Role.ADMIN));
+    }
+
     public boolean isStaff(Authentication authentication) {
         return hasAnyRole(authentication, OPERATIONAL_STAFF);
     }

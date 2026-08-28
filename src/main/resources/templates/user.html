@@ -15,6 +15,12 @@
 
     <div class="alert alert-ok" th:if="${param.activated}" style="margin-bottom:16px">User activated.</div>
     <div class="alert alert-ok" th:if="${param.opened}" style="margin-bottom:16px">Account opened.</div>
+    <div class="alert alert-error" th:if="${param.frozen}" style="margin-bottom:16px">
+        <span class="mono" th:text="${param.frozen}">PW…</span> is frozen. It can neither send nor receive.
+    </div>
+    <div class="alert alert-ok" th:if="${param.unfrozen}" style="margin-bottom:16px">
+        <span class="mono" th:text="${param.unfrozen}">PW…</span> is active again.
+    </div>
     <div class="alert alert-error" th:if="${param.error}" th:text="${param.error}" style="margin-bottom:16px">error</div>
 
     <div class="owner-block">
@@ -55,10 +61,19 @@
                 <span class="balance-ccy" th:text="${a.currencyCode}">EGP</span>
             </span>
         </a>
-        <div class="acct-line" th:if="${staff}" style="justify-content:flex-end;gap:8px">
-            <a class="btn btn-outline btn-sm" th:each="a : ${accounts}"
-               th:href="@{/cash(account=${a.accountNumber})}"
-               th:text="'Cash desk · ' + ${a.accountNumber}">Cash desk</a>
+        <div class="acct-line" th:if="${staff or canFreeze}" th:each="a : ${accounts}"
+             style="justify-content:flex-end;gap:8px;flex-wrap:wrap">
+            <span class="muted mono" style="margin-right:auto" th:text="${a.accountNumber}">PW…</span>
+            <a class="btn btn-outline btn-sm" th:if="${staff}"
+               th:href="@{/cash(account=${a.accountNumber})}">Cash desk</a>
+            <form th:if="${canFreeze}" method="post"
+                  th:action="@{/users/{id}/accounts/{n}/status(id=${user.publicId}, n=${a.accountNumber})}">
+                <input type="hidden" name="action"
+                       th:value="${a.status.name() == 'FROZEN'} ? 'unfreeze' : 'freeze'">
+                <input type="hidden" name="reason" value="compliance review">
+                <button type="submit" class="btn btn-outline btn-sm"
+                        th:text="${a.status.name() == 'FROZEN'} ? 'Unfreeze' : 'Freeze'">Freeze</button>
+            </form>
         </div>
     </div>
 

@@ -71,6 +71,7 @@ public class WebUserController {
                 AccountType.WALLET, AccountType.SAVINGS, AccountType.MERCHANT});
         model.addAttribute("staff", currentUser.isStaff());
         model.addAttribute("admin", currentUser.isAdmin());
+        model.addAttribute("canFreeze", currentUser.canFreeze());
         return "user";
     }
 
@@ -79,6 +80,27 @@ public class WebUserController {
     public String activate(@PathVariable UUID publicId, RedirectAttributes redirect) {
         userService.activate(publicId);
         redirect.addAttribute("activated", "");
+        return "redirect:/users/" + publicId;
+    }
+
+    @PreAuthorize("@ownership.canFreeze(authentication)")
+    @PostMapping("/users/{publicId}/accounts/{accountNumber}/status")
+    public String changeAccountStatus(@PathVariable UUID publicId,
+                                      @PathVariable String accountNumber,
+                                      @RequestParam String action,
+                                      @RequestParam(required = false) String reason,
+                                      RedirectAttributes redirect) {
+        try {
+            if ("freeze".equals(action)) {
+                accountService.freeze(accountNumber, reason, currentUser.publicId());
+                redirect.addAttribute("frozen", accountNumber);
+            } else {
+                accountService.unfreeze(accountNumber, reason, currentUser.publicId());
+                redirect.addAttribute("unfrozen", accountNumber);
+            }
+        } catch (BusinessRuleException ex) {
+            redirect.addAttribute("error", ex.getMessage());
+        }
         return "redirect:/users/" + publicId;
     }
 

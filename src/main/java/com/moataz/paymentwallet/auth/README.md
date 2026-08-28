@@ -165,6 +165,7 @@ staff** who may move money (`TELLER`, `SUPERVISOR`, `ADMIN`), and **read-only st
 | `POST /api/transfers` | must own the **source** | ✗ | any |
 | `GET`/`PUT` on a transfer | either party to it | — | any |
 | `POST /api/transfers/{ref}/reversal` | ✗ | ✗ — back office | ✓ |
+| `POST /api/accounts/{n}/freeze`, `/unfreeze` | ✗ | ✗ | ✓ — with `COMPLIANCE` |
 | `/api/admin/**` | ✗ | ✗ | ✓ |
 | `SYSTEM` settlement accounts | ✗ never | ✗ never | read-only, not creatable via the API |
 
@@ -179,6 +180,12 @@ mint money, which is exactly what it was before this rule existed.
 into their own wallet is the textbook internal fraud, so the check is on identity rather
 than on role: if the actor owns the account, the counter refuses and tells them to ask a
 colleague. A colleague serving the same account is fine.
+
+**Freezing is a compliance power, not an operational one.** A teller cannot freeze an
+account and a frozen account can neither send nor receive — the transfer engine already
+refused any account that is not `ACTIVE`, so the freeze needed no change there. Settlement
+accounts are refused outright: freezing one would stop every deposit and withdrawal in that
+currency. Who froze it, when, and why are recorded on the account.
 
 **Permissions have amounts, not only verbs.** A teller may hand over up to
 `limits.teller.max-cash` (20,000 by default); above that the counter refuses and a

@@ -36,6 +36,10 @@ public class CurrentUser {
                 .anyMatch(a -> role.equals(a.getAuthority()));
     }
 
+    public boolean canFreeze() {
+        return hasRole("ROLE_COMPLIANCE") || hasRole("ROLE_ADMIN");
+    }
+
     public boolean isAdmin() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null && auth.getAuthorities().stream()

@@ -44,6 +44,16 @@ public class Account {
     @Column(nullable = false, length = 20)
     private AccountStatus status = AccountStatus.ACTIVE;
 
+    @Column(name = "status_reason", length = 255)
+    private String statusReason;
+
+    @Column(name = "status_changed_at")
+    private OffsetDateTime statusChangedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "status_changed_by")
+    private AppUser statusChangedBy;
+
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal balance = BigDecimal.ZERO;
 
