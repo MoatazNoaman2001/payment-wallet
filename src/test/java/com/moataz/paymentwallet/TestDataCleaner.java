@@ -2,6 +2,7 @@ package com.moataz.paymentwallet;
 
 import com.moataz.paymentwallet.account.Account;
 import com.moataz.paymentwallet.account.AccountRepository;
+import com.moataz.paymentwallet.funding.PaymentIntentRepository;
 import com.moataz.paymentwallet.transfer.LedgerEntryRepository;
 import com.moataz.paymentwallet.transfer.OutboxEventRepository;
 import com.moataz.paymentwallet.transfer.Transfer;
@@ -38,6 +39,7 @@ class TestDataCleaner {
     private final OutboxEventRepository outboxEventRepository;
     private final AccountRepository accountRepository;
     private final AppUserRepository userRepository;
+    private final PaymentIntentRepository paymentIntentRepository;
 
     @Transactional
     void deleteCreated(List<Long> trackedAccountIds, List<Long> userIds) {
@@ -47,6 +49,11 @@ class TestDataCleaner {
                 .distinct().toList();
 
         if (!accountIds.isEmpty()) {
+            // payment_intent points at both the account and the transfer that settled it,
+            // so it has to go before either of them
+            paymentIntentRepository.deleteByAccountIdIn(accountIds);
+            paymentIntentRepository.flush();
+
             List<Transfer> mine =
                     transferRepository.findBySourceAccountIdInOrDestAccountIdIn(accountIds, accountIds);
 

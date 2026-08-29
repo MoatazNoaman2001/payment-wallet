@@ -60,6 +60,13 @@ public class Account {
     @Column(name = "daily_limit", precision = 19, scale = 4)
     private BigDecimal dailyLimit;
 
+    /**
+     * Only ever set on SYSTEM accounts. NULL is the cash drawer; a value names the payment
+     * provider whose clearing account this is.
+     */
+    @Column(length = 20)
+    private String provider;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

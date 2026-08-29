@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sandbox provider · Payment Wallet</title>
+    <link rel="stylesheet" th:href="@{/css/wallet.css}">
+</head>
+<body>
+
+<div class="login-page">
+    <div class="login-card">
+        <div class="brand" style="margin-bottom:20px">sandbox<span>provider</span></div>
+
+        <h1 class="login-title">Confirm this payment</h1>
+        <p class="login-sub">
+            Pretend this page belongs to Stripe. Whichever button you press signs a webhook and
+            sends it back to the wallet, which verifies it exactly like a real one.
+        </p>
+
+        <dl class="kv" style="margin-bottom:20px">
+            <dt>Reference</dt><dd class="mono" th:text="${payment.reference}">DEP…</dd>
+            <dt>Amount</dt>
+            <dd>
+                <span th:text="${#numbers.formatDecimal(payment.amount, 1, 'COMMA', 2, 'POINT')}">0.00</span>
+                <span th:text="${payment.currencyCode}">EGP</span>
+            </dd>
+            <dt>Into</dt><dd class="mono" th:text="${payment.accountNumber}">PW…</dd>
+            <dt>Provider ref</dt><dd class="mono" th:text="${payment.providerReference}">sbx_…</dd>
+        </dl>
+
+        <form th:action="@{/funding/sandbox/{r}(r=${payment.reference})}" method="post">
+            <input type="hidden" name="outcome" value="succeeded">
+            <button type="submit" class="btn btn-block">Pay</button>
+        </form>
+        <form th:action="@{/funding/sandbox/{r}(r=${payment.reference})}" method="post"
+              style="margin-top:10px">
+            <input type="hidden" name="outcome" value="failed">
+            <button type="submit" class="btn btn-outline btn-block">Decline</button>
+        </form>
+
+        <p class="hint"><a th:href="@{/funding}">Back to the wallet</a></p>
+    </div>
+</div>
+
+</body>
+</html>

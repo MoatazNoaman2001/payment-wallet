@@ -123,6 +123,13 @@ naming which rule stopped it: *limit 5000 (BASIC verification)* reads very diffe
 *limit 100 (account limit)*. A missing profile resolves to `BASIC`, so a gap in the data
 produces a customer who is too restricted, never one who is too free.
 
+**External money arrives when the provider says so, not when the customer clicks.** A card or
+PayPal deposit records a `payment_intent` and touches no ledger at all until a signed webhook
+confirms it — the customer landing back on the success page proves nothing, since they can type
+that URL themselves. A withdrawal is the mirror image: the wallet is debited *before* the
+provider is asked, because money promised outside must stop being spendable inside immediately,
+and a payout that fails days later is returned with a compensating credit rather than an edit.
+
 **A frozen account is frozen everywhere.** Compliance can freeze an account, and the
 transfer engine refuses it as source or destination without a single extra check — it
 already required `ACTIVE`. Who froze it, when and why are stored on the row.
@@ -194,6 +201,8 @@ outbox_event   fx_rate   beneficiary
 | `currency`, `account`, `card`, `beneficiary` | money containers |
 | `transfer` | the command: who moved what, where, and its status |
 | `ledger_entry` | the truth: immutable debit/credit legs |
+| `payment_intent` | money asked for from a provider, and whether it ever arrived |
+| `webhook_event` | every provider callback, deduplicated by their event id |
 | `outbox_event` | transactional outbox for downstream publication |
 | `fx_rate`, `tag`, `transfer_tag` | multi-currency and categorisation |
 
@@ -242,6 +251,12 @@ statement, and an operations page. It is responsive and shares the API's authori
 | `GET` | `/api/transfers/{reference}` | fetch a transfer | either party |
 | `PUT` | `/api/transfers/{reference}/tags` | categorise a transfer | either party |
 | `POST` | `/api/transfers/{reference}/reversal` | compensating REVERSAL transfer | **admin** |
+| `GET` | `/api/funding/providers` | which providers this deployment has keys for | authenticated |
+| `POST` | `/api/funding/deposits` | start a provider deposit; needs `Idempotency-Key` | account owner |
+| `POST` | `/api/funding/withdrawals` | start a payout; debits immediately | account owner |
+| `GET` | `/api/funding/payments`, `/{reference}` | your deposits and withdrawals | owner or staff |
+| `POST` | `/api/webhooks/{provider}` | provider callback | **signature, not session** |
+| `GET`/`POST` | `/funding` (HTML) | add or withdraw money | authenticated |
 | `GET` | `/actuator/health` | liveness, including a database check | public |
 | `GET` | `/api/admin/reconciliation` | accounts whose balance disagrees with the ledger | **admin** |
 | `POST` | `/api/admin/outbox/publish` | drain pending outbox events now | **admin** |
@@ -354,6 +369,9 @@ than defaulted.
 | `Phase5ReliabilityTest` | drift detection, publish-once semantics, batch draining |
 | `Phase5ReversalTest` | compensating reversal, idempotency, state machine, refusal when funds are spent |
 | `Phase4SecurityTest` | 401 anonymous, 403 on someone else's account, refused transfer leaves balances untouched, refresh reuse detection |
+| `FundingTest` | provider deposits and withdrawals, webhook replay, forged signatures, compensated payouts |
+| `WebhookSignatureTest` | Stripe HMAC verification, replay tolerance, crypto confirmations, exact money conversion |
+| `FundingIdempotencyTest` | the retry path, deliberately outside a test transaction |
 | `KycAndOnboardingTest` | self-service vs counter registration, who may verify, tier ceilings, masked national id |
 
 ---
@@ -373,6 +391,11 @@ family, and the XSS-versus-CSRF trade that comes with cookie delivery.
 [`user/README.md`](src/main/java/com/moataz/paymentwallet/user/README.md) covers onboarding:
 the two ways into the system, why registration is the one unauthenticated write, the
 submit → review → activate lifecycle, and how a verification tier turns into a daily ceiling.
+
+[`funding/README.md`](src/main/java/com/moataz/paymentwallet/funding/README.md) covers external
+money: why a payment intent is not a transfer, why every provider gets its own clearing account,
+the three independent guards that make a replayed webhook harmless, and the self-invocation bug
+that thirteen passing tests could not see.
 
 [`statement/README.md`](src/main/java/com/moataz/paymentwallet/statement/README.md)
 covers the query side: pagination and its scaling limits, Specifications for dynamic
@@ -397,6 +420,7 @@ joins, and the four kinds of JPA projection.
 - [x] Thymeleaf: navigation, staff account list, operations page, responsive layout
 - [x] Thymeleaf: registration, customer list, profile with activation and account opening
 - [x] KYC: identity submission, compliance review, tiered daily ceilings, counter registration
+- [x] External funding: Stripe, PayPal and crypto adapters behind one port, signed webhooks
 - [x] Thymeleaf page: transfer form with browser-safe idempotency
 - [x] Thymeleaf page: teller cash desk (open accounts, deposit, withdraw)
 - [ ] Testcontainers, metrics

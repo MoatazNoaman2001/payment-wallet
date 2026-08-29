@@ -74,6 +74,15 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(ProviderUnavailableException.class)
+    public ProblemDetail handleProviderUnavailable(ProviderUnavailableException ex) {
+        log.warn("Payment provider call failed: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_GATEWAY);
+        problem.setTitle("Payment provider unavailable");
+        problem.setDetail(ex.getMessage());
+        return problem;
+    }
+
     @ExceptionHandler(DuplicateResourceException.class)
     public ProblemDetail handleDuplicate(DuplicateResourceException ex) {
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.CONFLICT);

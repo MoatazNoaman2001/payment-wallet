@@ -104,9 +104,18 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     @Query("""
            select a.accountNumber from Account a
            where a.type = com.moataz.paymentwallet.account.AccountType.SYSTEM
+             and a.provider is null
              and a.currency.code = :currencyCode
            """)
     Optional<String> findSystemAccountNumber(String currencyCode);
+
+    @Query("""
+           select a.accountNumber from Account a
+           where a.type = com.moataz.paymentwallet.account.AccountType.SYSTEM
+             and a.provider = :provider
+             and a.currency.code = :currencyCode
+           """)
+    Optional<String> findClearingAccountNumber(String provider, String currencyCode);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from Account a where a.id = :id")

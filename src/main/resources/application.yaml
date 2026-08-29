@@ -83,3 +83,25 @@ limits:
     basic: 5000
     verified: 50000
     enhanced: 0
+
+# External deposits and withdrawals. A provider with no credentials is reported as
+# unconfigured and refused up front, rather than failing somewhere inside an HTTP call.
+# Real keys belong in .env, never here.
+funding:
+  base-url: ${FUNDING_BASE_URL:http://localhost:8080}
+  sandbox:
+    webhook-secret: ${SANDBOX_WEBHOOK_SECRET:sandbox-webhook-secret}
+  stripe:
+    secret-key: ${STRIPE_SECRET_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  paypal:
+    client-id: ${PAYPAL_CLIENT_ID:}
+    client-secret: ${PAYPAL_CLIENT_SECRET:}
+    webhook-id: ${PAYPAL_WEBHOOK_ID:}
+    api-url: ${PAYPAL_API_URL:https://api-m.sandbox.paypal.com}
+  crypto:
+    api-url: ${CRYPTO_API_URL:}
+    api-key: ${CRYPTO_API_KEY:}
+    webhook-secret: ${CRYPTO_WEBHOOK_SECRET:}
+    # how many blocks deep before a deposit is safe to credit
+    required-confirmations: ${CRYPTO_CONFIRMATIONS:3}

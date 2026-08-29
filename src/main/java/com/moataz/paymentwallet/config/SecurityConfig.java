@@ -56,6 +56,8 @@ public class SecurityConfig {
                     .requestMatchers("/api/auth/login", "/api/auth/refresh").permitAll()
                     .requestMatchers("/login", "/register", "/css/**", "/favicon.ico").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
+                    // a provider holds no session; the signature is the authentication
+                    .requestMatchers(HttpMethod.POST, "/api/webhooks/**").permitAll()
                     .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     .anyRequest().authenticated())
