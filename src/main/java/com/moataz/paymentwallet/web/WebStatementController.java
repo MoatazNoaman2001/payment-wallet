@@ -4,6 +4,9 @@ import com.moataz.paymentwallet.account.AccountService;
 import com.moataz.paymentwallet.statement.StatementFilter;
 import com.moataz.paymentwallet.statement.StatementLine;
 import com.moataz.paymentwallet.statement.StatementService;
+import com.moataz.paymentwallet.auth.CurrentUser;
+import com.moataz.paymentwallet.common.error.BusinessRuleException;
+import com.moataz.paymentwallet.transfer.ReversalService;
 import com.moataz.paymentwallet.transfer.LedgerDirection;
 import com.moataz.paymentwallet.transfer.TransferType;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +20,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
@@ -31,6 +36,8 @@ public class WebStatementController {
 
     private final StatementService statementService;
     private final AccountService accountService;
+    private final ReversalService reversalService;
+    private final CurrentUser currentUser;
 
     @PreAuthorize("@ownership.canServiceAccount(#accountNumber, authentication)")
     @GetMapping("/accounts/{accountNumber}/statement")
@@ -71,6 +78,30 @@ public class WebStatementController {
         model.addAttribute("nextUrl", pageUrl(accountNumber, page.getNumber() + 1, page.getSize(),
                 from, to, type, direction, minAmount, maxAmount));
         return "statement";
+    }
+
+    /**
+     * A mistake is corrected by writing the opposite entry, not by deleting the wrong one, so
+     * this posts a compensating REVERSAL and leaves the original on the statement forever.
+     * Admin only, and deliberately not something a teller can do: the person who made the
+     * mistake should not be the one who erases it.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/accounts/{accountNumber}/transfers/{reference}/reversal")
+    public String reverse(@PathVariable String accountNumber,
+                          @PathVariable String reference,
+                          @RequestParam(required = false) String reason,
+                          RedirectAttributes redirect) {
+        try {
+            String created = reversalService
+                    .reverse(reference, reason == null || reason.isBlank() ? "corrected by admin" : reason,
+                             currentUser.publicId())
+                    .reference();
+            redirect.addAttribute("reversed", created);
+        } catch (BusinessRuleException ex) {
+            redirect.addAttribute("error", ex.getMessage());
+        }
+        return "redirect:/accounts/" + accountNumber + "/statement";
     }
 
     private String pageUrl(String accountNumber, int page, int size,

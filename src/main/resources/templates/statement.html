@@ -12,6 +12,14 @@
 
 <div class="wrap" style="max-width:1040px">
 
+    <div class="alert alert-ok" th:if="${param.reversed}" style="margin-bottom:16px">
+        Reversed. A compensating entry
+        <span class="mono" th:text="${param.reversed}">TRF…</span> was posted; the original stays
+        on the statement.
+    </div>
+    <div class="alert alert-error" th:if="${param.error}" th:text="${param.error}"
+         style="margin-bottom:16px">error</div>
+
     <a class="back" th:href="@{/accounts}">← Accounts</a>
 
     <div class="alert alert-ok" th:if="${param.sent}" style="margin-bottom:16px">
@@ -82,6 +90,7 @@
                 <col class="c-party">
                 <col class="c-desc">
                 <col class="c-amount">
+                <col class="c-act" th:if="${admin}">
             </colgroup>
             <thead>
             <tr>
@@ -91,6 +100,7 @@
                 <th>Counterparty</th>
                 <th>Description</th>
                 <th class="col-right">Amount</th>
+                <th th:if="${admin}"></th>
             </tr>
             </thead>
             <tbody>
@@ -111,6 +121,13 @@
                                   + ${#numbers.formatDecimal(line.amount, 1, 'COMMA', 2, 'POINT')}">+0.00</div>
                     <div class="running"
                          th:text="${#numbers.formatDecimal(line.balanceAfter, 1, 'COMMA', 2, 'POINT')}">0.00</div>
+                </td>
+                <td th:if="${admin}" class="col-right nowrap">
+                    <form th:if="${line.reversible}" method="post"
+                          th:action="@{/accounts/{n}/transfers/{r}/reversal(n=${accountNumber}, r=${line.reference})}">
+                        <button type="submit" class="btn btn-outline btn-sm">Reverse</button>
+                    </form>
+                    <span class="badge frozen" th:if="${line.status.name() == 'REVERSED'}">reversed</span>
                 </td>
             </tr>
             </tbody>

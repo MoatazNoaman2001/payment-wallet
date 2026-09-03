@@ -386,6 +386,7 @@ table.statement .c-ref    { width: 185px; }
 table.statement .c-type   { width: 92px; }
 table.statement .c-party  { width: 165px; }
 table.statement .c-amount { width: 130px; }
+table.statement .c-act    { width: 96px; }
 
 td.truncate {
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 0;

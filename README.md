@@ -228,6 +228,7 @@ statement, and an operations page. It is responsive and shares the API's authori
 | `POST` | `/users/{publicId}/kyc-review` | verify an identity at a tier | **compliance** |
 | `GET` | `/accounts` (HTML) | own accounts, or every account for staff | authenticated |
 | `GET` | `/accounts/{n}/statement` (HTML) | paginated, filterable statement | owner or staff |
+| `POST` | `/accounts/{n}/transfers/{ref}/reversal` | compensating entry, from the statement | **admin** |
 | `GET`/`POST` | `/transfer` (HTML) | send money between accounts | owner of the source |
 | `GET` | `/cash` (HTML) | teller desk: look up an account, take or pay cash | staff |
 | `POST` | `/cash/deposit`, `/cash/withdraw` | counter operations | staff |
@@ -368,6 +369,7 @@ than defaulted.
 | `LockingStrategyComparisonTest` | pessimistic vs optimistic, side by side |
 | `Phase5ReliabilityTest` | drift detection, publish-once semantics, batch draining |
 | `Phase5ReversalTest` | compensating reversal, idempotency, state machine, refusal when funds are spent |
+| `WebReversalTest` | the Reverse button: admin only, writes a new entry, leaves the original in place |
 | `Phase4SecurityTest` | 401 anonymous, 403 on someone else's account, refused transfer leaves balances untouched, refresh reuse detection |
 | `FundingTest` | provider deposits and withdrawals, webhook replay, forged signatures, compensated payouts |
 | `WebhookSignatureTest` | Stripe HMAC verification, replay tolerance, crypto confirmations, exact money conversion |

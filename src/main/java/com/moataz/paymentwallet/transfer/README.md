@@ -327,3 +327,23 @@ Errors come back as RFC 7807 `application/problem+json`:
   never a deletion. Ledger rows are never removed.
 - **The outbox publisher.** Events accumulate with `published_at IS NULL`. Nothing reads
   them yet.
+
+
+---
+
+## Reversing from the statement
+
+The reversal lived only in the JSON API for a while, which meant the single action that best
+explains an append-only ledger was the one you could not show anybody. There is now a **Reverse**
+button on each statement row, for administrators only.
+
+Pressing it does not remove the line. It writes the opposite entry and marks the original:
+
+```
+REV5236085DCE2C48B2B11B  REVERSAL  Reversal of TRF7A01...: wrong account  +120.00  500.00
+TRF7A01FDC6159C44E7BD45  P2P                                             -120.00  380.00  reversed
+```
+
+Both rows stay on the statement forever, which is the point. `StatementLine` carries the
+transfer status so the button only appears where a reversal is actually possible: a `REVERSAL`
+cannot be reversed, and neither can a transfer that already has been.

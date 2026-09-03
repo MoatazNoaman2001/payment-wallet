@@ -1,41 +1,33 @@
-hello again to banking sys , lets start ui preview and see every role again inside system
+hello again to our banking sys, today in this post we will continue with ui preview , in here we extend some featrues and try to mange role behaviors
 
-we have 5 roles in the banking system:
+in this system we have 6 roles
 
-customer / teller / supervisor / auditor / admin
+customer , admin, teller, supervisor , auditor , compliance
 
-lets walk through each one
-
-
-create account create customer account, admin approve kyc for customer so can do transactions
+creating new account make new fresh customer that need to verify kyc , lets start
 
 
-customer here can add money normally to system, by default sandbox here for demo , but
-customer can deposit from pyapal or any crypto platform , crypto deposit only, paypal desposit and withdraw
+now lets go to verify kyc for the new customer, we will check the documents provided and approve or reject based on the verification process.
 
-all is configured and tested
+now compliance or admin should be verify identity
 
-
-lets try to send money from egp to usd account , may it works?
-no curancy should be matching here, no internal converter (easy but to show check for money)
+now lets make accounts for customer
 
 
-lets see teller role
+now customer have three accounts , he can transact money from his accounts to out side , also added recently he can deposit
+or withdraw from paypal or crypto , they was experted in sandbox env, not real live one from paypal and crypto api platform
 
-for teller role, only allowed to desposit or withdraw money tell 20k only (this role for simulation
-bank teller)
-
-
-ok here we are supervisor role, i intrupet for wa messages haha
+thing in how deposit from client side works will be explaned in post
 
 
-compliance role is like for register and verify new users or freeze and unfreeze accounts
+teller is like a bank employee who can help customers with their transactions, they can also assist in account management and provide support for various banking services.
+he have limit of 20k, any money above that limit will be rejected and supervisor or admin can deposit tell account limit
 
-no admin for do all funcationality inside system in real fintech sys this should be splited in 3 roles
-but like to be demonstrated in one role for now for demo purpose
-
-
-ok thats all for our system here for this demo
+as you see now
 
 
-thanks for watching
+now for freezing account compliance can do so
+
+in example here i can send sys between diff users but for simplicity
+
+admin here can do all operation inside sys with some extra features;

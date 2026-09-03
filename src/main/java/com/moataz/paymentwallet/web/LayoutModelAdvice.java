@@ -33,6 +33,11 @@ public class LayoutModelAdvice {
         return currentUser.canBrowseCustomers();
     }
 
+    @ModelAttribute("admin")
+    public boolean admin() {
+        return currentUser.isAdmin();
+    }
+
     @ModelAttribute("needsVerification")
     public boolean needsVerification() {
         // employees are not account holders: prompting an auditor to submit a national id

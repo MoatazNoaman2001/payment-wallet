@@ -109,7 +109,6 @@ public class WebUserController {
         model.addAttribute("tiers", KycTier.values());
         model.addAttribute("types", new AccountType[]{
                 AccountType.WALLET, AccountType.SAVINGS, AccountType.MERCHANT});
-        model.addAttribute("admin", currentUser.isAdmin());
         model.addAttribute("canFreeze", currentUser.canFreeze());
         model.addAttribute("canApprove", currentUser.canApproveIdentity());
         model.addAttribute("canOpen", canAct(publicId));
