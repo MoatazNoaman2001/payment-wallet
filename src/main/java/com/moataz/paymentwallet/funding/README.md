@@ -174,7 +174,7 @@ fail that way, and it also stops an adapter from quietly writing to the database
 | | The interesting part |
 |---|---|
 | **Stripe** | integer minor units against a `NUMERIC(19,4)` ledger; timestamped HMAC signatures |
-| **PayPal** | approve and capture are two steps — approval moves no money; verification costs a round trip back to PayPal, because they publish no HMAC secret |
+| **PayPal** | approve and capture are two steps, and an uncaptured order expires with the customer believing they paid; verification costs a round trip back to PayPal, because they publish no HMAC secret |
 | **Crypto** | settlement is *gradual*; no chargebacks, but confirmations |
 | **Sandbox** | the whole flow, offline, with no account anywhere |
 
@@ -298,6 +298,10 @@ field names on the first real call. What *is* proven is everything on this side 
   that fetches Stripe's balance transactions and compares them is the other half.
 - **A sweep for stale intents.** `findStale` exists and nothing calls it. An intent left
   `PENDING` because a webhook never arrived should be polled and resolved.
+- **Bybit, or any exchange, as a deposit rail.** Exchanges publish no webhooks — Bybit gives a
+  master deposit address per coin and expects you to poll `/v5/asset/deposit/query-record` — so
+  the adapter would need a scheduled poller rather than a callback. Worth building as a contrast
+  one day; not worth pointing a personal trading account at other people's money.
 - **Refunds and chargebacks.** A card deposit can be pulled back months later; there is no
   `charge.dispute.created` handling here, and for a wallet that is a real hole.
 - **Fees.** Providers take a cut. `transfer.fee` exists and is always zero.

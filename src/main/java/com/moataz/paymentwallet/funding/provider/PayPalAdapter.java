@@ -151,6 +151,21 @@ public class PayPalAdapter implements PaymentProviderAdapter {
     }
 
     /**
+     * An approved order is a promise, not a payment. PayPal waits for the merchant to capture
+     * it, and an order left uncaptured expires with the customer believing they paid. Capturing
+     * makes PayPal emit PAYMENT.CAPTURE.COMPLETED, which is the event that reaches the ledger,
+     * so this method deliberately posts nothing itself.
+     */
+    @Override
+    public void captureIfNeeded(ProviderEvent event) {
+        if (!"CHECKOUT.ORDER.APPROVED".equals(event.eventType())) {
+            return;
+        }
+        log.info("Capturing approved PayPal order {}", event.providerReference());
+        postJson("/v2/checkout/orders/" + event.providerReference() + "/capture", "{}");
+    }
+
+    /**
      * PayPal does not hand out an HMAC secret. Verification means asking PayPal itself whether
      * the delivery it just made was genuine, which costs a round trip per webhook — the price
      * of their certificate-based scheme.

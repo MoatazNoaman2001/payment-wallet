@@ -40,6 +40,14 @@ public interface PaymentProviderAdapter {
      */
     ProviderEvent readEvent(String rawBody, Map<String, String> headers);
 
+    /**
+     * Some providers authorise and capture in two steps, and an approval on its own moves no
+     * money. Called for any event this wallet understands but which settles nothing, so the
+     * adapter can take the second step; the provider then reports the capture as its own event.
+     */
+    default void captureIfNeeded(ProviderEvent event) {
+    }
+
     default boolean supports(PaymentDirection direction) {
         return supports().contains(direction);
     }

@@ -1,19 +1,41 @@
-hello again to banking sys
+hello again to banking sys , lets start ui preview and see every role again inside system
+
+we have 5 roles in the banking system:
+
+customer / teller / supervisor / auditor / admin
+
+lets walk through each one
 
 
-this sys we will walk though each of 5 roles , and discover how each role contributes to the overall banking system.
+create account create customer account, admin approve kyc for customer so can do transactions
 
 
-this customer one
+customer here can add money normally to system, by default sandbox here for demo , but
+customer can deposit from pyapal or any crypto platform , crypto deposit only, paypal desposit and withdraw
+
+all is configured and tested
 
 
-customer can add money via paypal or crypto , all is verified and tested (cyrpto is deposit only flow)
+lets try to send money from egp to usd account , may it works?
+no curancy should be matching here, no internal converter (easy but to show check for money)
 
-now i added money from customer side (sandbox here is placeholder, you can use real paypal or crypto in production) and now we will see how this money is reflected in the banking system.
 
-now teller role
+lets see teller role
 
-we add here limit of 20k per account for teller role , if customer or teller want to deposit
-or withdraw more than 20k,it will go via supervisor role for approval.
+for teller role, only allowed to desposit or withdraw money tell 20k only (this role for simulation
+bank teller)
 
-teller can register new customers ,but should be kyc verified after that from admin, to make transactions after that.
+
+ok here we are supervisor role, i intrupet for wa messages haha
+
+
+compliance role is like for register and verify new users or freeze and unfreeze accounts
+
+no admin for do all funcationality inside system in real fintech sys this should be splited in 3 roles
+but like to be demonstrated in one role for now for demo purpose
+
+
+ok thats all for our system here for this demo
+
+
+thanks for watching

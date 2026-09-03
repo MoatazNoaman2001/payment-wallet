@@ -1,5 +1,6 @@
 package com.moataz.paymentwallet.funding;
 
+import com.moataz.paymentwallet.funding.provider.PaymentProviderAdapter;
 import com.moataz.paymentwallet.funding.provider.ProviderEvent;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -29,7 +30,8 @@ public class WebhookService {
 
     public String handle(PaymentProvider provider, String rawBody, Map<String, String> headers) {
         // verification first: an unsigned webhook is an anonymous stranger claiming money arrived
-        ProviderEvent event = registry.get(provider).readEvent(rawBody, headers);
+        PaymentProviderAdapter adapter = registry.get(provider);
+        ProviderEvent event = adapter.readEvent(rawBody, headers);
 
         Long id = webhookLog.record(provider, event, rawBody);
         if (id == null) {
@@ -39,8 +41,11 @@ public class WebhookService {
 
         try {
             if (event.outcome() == null) {
-                // understood, but it moves no money: a crypto payment short of its confirmations,
-                // or a PayPal approval that has not been captured yet
+                // understood, but it settles nothing yet: a crypto payment short of its
+                // confirmations, or a PayPal order approved but not captured. The second of
+                // those needs us to act, or the customer waits forever for money they think
+                // they already sent
+                adapter.captureIfNeeded(event);
                 webhookLog.markProcessed(id);
                 return "acknowledged";
             }
