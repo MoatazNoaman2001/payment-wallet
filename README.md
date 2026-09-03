@@ -372,6 +372,7 @@ than defaulted.
 | `FundingTest` | provider deposits and withdrawals, webhook replay, forged signatures, compensated payouts |
 | `WebhookSignatureTest` | Stripe HMAC verification, replay tolerance, crypto confirmations, exact money conversion |
 | `FundingIdempotencyTest` | the retry path, deliberately outside a test transaction |
+| `StaffNavigationTest` | for every staff role, what it may open and what its navigation links to agree |
 | `KycAndOnboardingTest` | self-service vs counter registration, who may verify, tier ceilings, masked national id |
 
 ---

@@ -1,0 +1,19 @@
+hello again to banking sys
+
+
+this sys we will walk though each of 5 roles , and discover how each role contributes to the overall banking system.
+
+
+this customer one
+
+
+customer can add money via paypal or crypto , all is verified and tested (cyrpto is deposit only flow)
+
+now i added money from customer side (sandbox here is placeholder, you can use real paypal or crypto in production) and now we will see how this money is reflected in the banking system.
+
+now teller role
+
+we add here limit of 20k per account for teller role , if customer or teller want to deposit
+or withdraw more than 20k,it will go via supervisor role for approval.
+
+teller can register new customers ,but should be kyc verified after that from admin, to make transactions after that.

@@ -23,9 +23,21 @@ public class LayoutModelAdvice {
                 .orElse(false);
     }
 
+    @ModelAttribute("staff")
+    public boolean staff() {
+        return currentUser.isStaff();
+    }
+
+    @ModelAttribute("browsing")
+    public boolean browsing() {
+        return currentUser.canBrowseCustomers();
+    }
+
     @ModelAttribute("needsVerification")
     public boolean needsVerification() {
-        if (currentUser.isStaff() || currentUser.canApproveIdentity()) {
+        // employees are not account holders: prompting an auditor to submit a national id
+        // was the same role-list drift, one list short of naming every kind of staff
+        if (currentUser.canBrowseCustomers()) {
             return false;
         }
         return currentUser.publicIdIfPresent()

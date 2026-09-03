@@ -197,6 +197,15 @@ refused any account that is not `ACTIVE`, so the freeze needed no change there. 
 accounts are refused outright: freezing one would stop every deposit and withdrawal in that
 currency. Who froze it, when, and why are recorded on the account.
 
+**A permission you cannot reach is still a bug.** Roles were defined three times over — in
+`AccountOwnership` for `@PreAuthorize`, again in `CurrentUser` for the page flags, and again
+hardcoded in the navigation — and they drifted. A `SUPERVISOR` was allowed onto the cash desk
+by the security layer while the pages decided they were not staff, so the counter was reachable
+only by typing the URL. Every authorization test passed, because authorization was working
+perfectly. `CurrentUser` now forwards every question to `AccountOwnership`, the layout reads
+model flags instead of its own role list, and `StaffNavigationTest` asserts that whatever a role
+may open, its navigation links to.
+
 **Permissions have amounts, not only verbs.** A teller may hand over up to
 `limits.teller.max-cash` (20,000 by default); above that the counter refuses and a
 `SUPERVISOR` or `ADMIN` must handle it. Role alone is too coarse a control for money.

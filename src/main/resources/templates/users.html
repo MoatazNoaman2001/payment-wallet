@@ -17,8 +17,7 @@
             <h1 class="page-title">Customers</h1>
             <p class="page-sub" th:text="${page.totalElements} + ' registered'">0 registered</p>
         </div>
-        <a class="btn btn-sm" sec:authorize="hasAnyRole('ADMIN','TELLER','SUPERVISOR')"
-           th:href="@{/users/new}">Register customer</a>
+        <a class="btn btn-sm" th:if="${staff}" th:href="@{/users/new}">Register customer</a>
     </div>
 
     <div class="table-wrap">
